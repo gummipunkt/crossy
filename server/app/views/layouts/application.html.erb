@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Server" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+  </head>
+
+  <body class="bg-gray-50 text-gray-900">
+    <header class="border-b bg-white">
+      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
+        <nav class="text-sm space-x-4">
+          <%= link_to "Composer", new_post_path, class: "text-blue-600 hover:underline" %>
+          <%= link_to "Timeline", "/timeline", class: "text-blue-600 hover:underline" %>
+          <%= link_to "Eigene Posts", "/my", class: "text-blue-600 hover:underline" %>
+          <%= link_to "Kanäle", provider_accounts_path, class: "text-blue-600 hover:underline" %>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-6">
+      <% if notice.present? %>
+        <div class="mb-4 rounded-md bg-green-50 text-green-900 px-4 py-3"><%= notice %></div>
+      <% end %>
+      <% if alert.present? %>
+        <div class="mb-4 rounded-md bg-red-50 text-red-900 px-4 py-3"><%= alert %></div>
+      <% end %>
+
+      <%= yield %>
+    </main>
+  </body>
+</html>

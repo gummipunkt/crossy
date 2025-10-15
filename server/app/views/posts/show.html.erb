@@ -1,0 +1,50 @@
+<h1 class="text-xl font-semibold mb-4">Beitrag #<%= @post.id %></h1>
+
+<p><strong>Text:</strong> <%= @post.content_text %></p>
+<% if @post.content_warning.present? %>
+  <p><strong>CW:</strong> <%= @post.content_warning %></p>
+<% end %>
+
+<h2 class="text-lg font-medium mt-6 mb-2">Auslieferungen</h2>
+<table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
+  <thead>
+    <tr class="bg-gray-50">
+      <th class="text-left px-3 py-2">Provider</th>
+      <th class="text-left px-3 py-2">Status</th>
+      <th class="text-left px-3 py-2">Provider Post ID</th>
+      <th class="text-left px-3 py-2">Fehler</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @deliveries.each do |d| %>
+      <tr class="border-t">
+        <td class="px-3 py-2"><%= d.provider_account.provider %></td>
+        <td class="px-3 py-2"><%= d.status %></td>
+        <td class="px-3 py-2"><%= d.provider_post_id %></td>
+        <td class="px-3 py-2"><%= d.error_message %></td>
+      </tr>
+    <% end %>
+  </tbody>
+  </table>
+
+<p class="mt-6"><%= link_to "Neuer Beitrag", new_post_path, class: "text-blue-600 hover:underline" %></p>
+
+<% if (pa = @deliveries.find { |d| d.provider_account.provider == 'nostr' }&.provider_account) %>
+  <hr>
+  <h2 class="text-lg font-medium mt-6 mb-2">Nostr</h2>
+  <p>
+    <div class="flex flex-wrap gap-3">
+      <button type="button" onclick="window.NostrConnect.connect()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
+        Mit Nostr verbinden
+      </button>
+      <button type="button" onclick="window.NostrConnect.signAndPublish(<%= @post.id %>, <%= pa.id %>)" class="inline-flex items-center rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700">
+        Signieren & Publizieren (NIP‑07)
+      </button>
+      <button type="button" onclick="window.NostrPrepare.prepare(<%= @post.id %>, <%= pa.id %>)" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
+        Event als JSON herunterladen
+      </button>
+    </div>
+  </p>
+<% end %>
+
+
