@@ -5,11 +5,11 @@ require "time"
 class FeedAggregator
   Item = Struct.new(:provider, :id, :author, :content, :created_at, :url, :images, keyword_init: true)
 
-  def aggregate(limit: 50)
+  def aggregate(limit: 50, user: nil)
     items = []
-    items.concat fetch_mastodon
-    items.concat fetch_bluesky
-    items.concat fetch_threads
+    items.concat fetch_mastodon(user)
+    items.concat fetch_bluesky(user)
+    items.concat fetch_threads(user)
     items.sort_by! { |i| i.created_at || Time.at(0) }
     items.reverse.first(limit)
   rescue => e
@@ -19,9 +19,11 @@ class FeedAggregator
 
   private
 
-  def fetch_mastodon
+  def fetch_mastodon(user)
     list = []
-    ProviderAccount.where(provider: "mastodon").find_each do |pa|
+    rel = ProviderAccount.where(provider: "mastodon")
+    rel = rel.where(user_id: user.id) if user
+    rel.find_each do |pa|
       next if pa.access_token.blank? || pa.instance.blank?
       conn = Faraday.new(url: pa.instance) { |f| f.adapter Faraday.default_adapter }
       resp = conn.get("/api/v1/timelines/home") do |req|
@@ -45,9 +47,11 @@ class FeedAggregator
     list
   end
 
-  def fetch_bluesky
+  def fetch_bluesky(user)
     list = []
-    ProviderAccount.where(provider: "bluesky").find_each do |pa|
+    rel = ProviderAccount.where(provider: "bluesky")
+    rel = rel.where(user_id: user.id) if user
+    rel.find_each do |pa|
       begin
         did, access = ensure_bluesky_session(pa)
         conn = Faraday.new(url: (pa.instance.presence || Posting::BlueskyClient::DEFAULT_BASE)) { |f| f.adapter Faraday.default_adapter }
@@ -86,9 +90,11 @@ class FeedAggregator
     list
   end
 
-  def fetch_threads
+  def fetch_threads(user)
     list = []
-    ProviderAccount.where(provider: "threads").find_each do |pa|
+    rel = ProviderAccount.where(provider: "threads")
+    rel = rel.where(user_id: user.id) if user
+    rel.find_each do |pa|
       next if pa.access_token.blank?
       conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
 

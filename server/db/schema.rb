@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_15_150000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_15_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -91,6 +91,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_15_150000) do
     t.datetime "scheduled_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_posts_on_user_id"
   end
 
   create_table "provider_accounts", force: :cascade do |t|
@@ -132,5 +134,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_15_150000) do
   add_foreign_key "deliveries", "provider_accounts"
   add_foreign_key "media_attachments", "posts"
   add_foreign_key "nostr_connect_sessions", "provider_accounts"
+  add_foreign_key "posts", "users"
   add_foreign_key "provider_accounts", "users"
 end

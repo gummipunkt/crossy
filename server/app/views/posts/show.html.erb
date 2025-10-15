@@ -27,7 +27,7 @@
   </tbody>
   </table>
 
-<p class="mt-6"><%= link_to "Neuer Beitrag", new_post_path, class: "text-blue-600 hover:underline" %></p>
+<p class="mt-6"><%= link_to "New Post", new_post_path, class: "text-blue-600 hover:underline" %></p>
 
 <% if (pa = @deliveries.find { |d| d.provider_account.provider == 'nostr' }&.provider_account) %>
   <hr>
@@ -35,7 +35,7 @@
   <p>
     <div class="flex flex-wrap gap-3">
       <button type="button" onclick="window.NostrConnect.connect()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
-        Mit Nostr verbinden
+        Mit Nostr Connect
       </button>
       <button type="button" onclick="window.NostrConnect.signAndPublish(<%= @post.id %>, <%= pa.id %>)" class="inline-flex items-center rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700">
         Signieren & Publizieren (NIP‑07)

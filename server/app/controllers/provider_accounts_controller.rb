@@ -1,6 +1,6 @@
 class ProviderAccountsController < ApplicationController
   def index
-    @provider_accounts = ProviderAccount.order(:provider, :handle)
+    @provider_accounts = ProviderAccount.where(user_id: current_user.id).order(:provider, :handle)
   end
 
   def new
@@ -15,7 +15,8 @@ class ProviderAccountsController < ApplicationController
         provider: "mastodon",
         handle: params.require(:handle),
         instance: params.require(:instance),
-        access_token: params.require(:access_token)
+        access_token: params.require(:access_token),
+        user_id: current_user.id
       )
       redirect_to provider_accounts_path, notice: "Mastodon connected: #{pa.handle}"
 
@@ -23,7 +24,8 @@ class ProviderAccountsController < ApplicationController
       pa = ProviderAccount.find_or_create_by!(
         provider: "bluesky",
         handle: params.require(:handle),
-        instance: params[:instance].presence
+        instance: params[:instance].presence,
+        user_id: current_user.id
       )
       Posting::BlueskyClient.new(pa).login!(params.require(:app_password))
       redirect_to provider_accounts_path, notice: "Bluesky connected: #{pa.handle}"
@@ -32,7 +34,8 @@ class ProviderAccountsController < ApplicationController
       pa = ProviderAccount.create!(
         provider: "nostr",
         handle: params.require(:handle),
-        public_key: params.require(:public_key)
+        public_key: params.require(:public_key),
+        user_id: current_user.id
       )
       redirect_to provider_accounts_path, notice: "Nostr connected: #{pa.handle}"
 
@@ -47,7 +50,7 @@ class ProviderAccountsController < ApplicationController
   end
 
   def destroy
-    pa = ProviderAccount.find(params[:id])
+    pa = ProviderAccount.where(user_id: current_user.id).find(params[:id])
     pa.destroy!
     redirect_to provider_accounts_path, notice: "Channel removed"
   end

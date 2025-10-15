@@ -1,12 +1,12 @@
-<h1 class="text-xl font-semibold mb-4">Kanäle</h1>
+<h1 class="text-xl font-semibold mb-4">Networks</h1>
 
 <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden mb-6">
   <thead>
     <tr class="bg-gray-50">
       <th class="text-left px-3 py-2">Provider</th>
       <th class="text-left px-3 py-2">Handle</th>
-      <th class="text-left px-3 py-2">Instanz/Info</th>
-      <th class="text-left px-3 py-2">Aktionen</th>
+      <th class="text-left px-3 py-2">Instance(s)/Info</th>
+      <th class="text-left px-3 py-2">Action</th>
     </tr>
   </thead>
   <tbody>
@@ -16,14 +16,14 @@
         <td class="px-3 py-2"><%= pa.handle %></td>
         <td class="px-3 py-2"><%= pa.instance || pa.public_key %></td>
         <td class="px-3 py-2">
-          <%= button_to "Löschen", provider_account_path(pa), method: :delete, data: { confirm: "Wirklich löschen?" }, class: "rounded-md bg-red-600 text-white px-3 py-1 hover:bg-red-700" %>
+          <%= button_to "Delete", provider_account_path(pa), method: :delete, data: { confirm: "Wirklich Delete?" }, class: "rounded-md bg-red-600 text-white px-3 py-1 hover:bg-red-700" %>
         </td>
       </tr>
     <% end %>
   </tbody>
 </table>
 
-<h2 class="text-lg font-medium mb-2">Neuen Kanal verbinden</h2>
+<h2 class="text-lg font-medium mb-2">Connect new network</h2>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
   <div class="p-4 border rounded-md bg-white">
@@ -33,7 +33,7 @@
       <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Handle">
       <input class="w-full border rounded px-2 py-1" name="instance" placeholder="https://deine.instanz">
       <input class="w-full border rounded px-2 py-1" name="access_token" placeholder="Access Token">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Verbinden</button>
+      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
     <% end %>
   </div>
 
@@ -43,8 +43,8 @@
       <input type="hidden" name="provider" value="bluesky">
       <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Handle oder DID">
       <input class="w-full border rounded px-2 py-1" name="instance" placeholder="https://pds.domain.tld (optional)">
-      <input class="w-full border rounded px-2 py-1" name="app_password" placeholder="App-Passwort">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Verbinden</button>
+      <input class="w-full border rounded px-2 py-1" name="app_password" placeholder="App Password">
+      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
     <% end %>
   </div>
 
@@ -52,7 +52,7 @@
     <h3 class="font-semibold mb-2">Threads</h3>
     <%= form_with url: provider_accounts_path, method: :post do %>
       <input type="hidden" name="provider" value="threads">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Mit Threads verbinden</button>
+      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Threads Connect</button>
     <% end %>
   </div>
 
@@ -62,7 +62,7 @@
       <input type="hidden" name="provider" value="nostr">
       <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Name">
       <input class="w-full border rounded px-2 py-1" name="public_key" placeholder="Pubkey (hex)">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Hinzufügen</button>
+      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
     <% end %>
   </div>
 </div>

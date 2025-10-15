@@ -1,6 +1,6 @@
 class TimelineController < ApplicationController
   def index
-    @posts = Post.includes(deliveries: :provider_account).order(created_at: :desc).limit(100)
+    @posts = Post.where(user_id: current_user.id).includes(deliveries: :provider_account).order(created_at: :desc).limit(100)
   end
 end
 

@@ -13,7 +13,7 @@ class ProviderAccount < ApplicationRecord
   validates :provider, presence: true, inclusion: { in: PROVIDERS }
   validates :handle, presence: true
 
-  # Instance is optional for providers die keine Instanz brauchen (z. B. Bluesky/Threads)
+  # Instance is optional for providers who don't need an instance (e.g. Bluesky/Threads)
 
   # Encrypted fields via Lockbox (uses *_ciphertext columns)
   has_encrypted :access_token

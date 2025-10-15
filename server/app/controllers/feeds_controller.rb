@@ -1,7 +1,7 @@
 class FeedsController < ApplicationController
   skip_before_action :verify_authenticity_token, only: :interact
   def index
-    @items = FeedAggregator.new.aggregate(limit: 50)
+    @items = FeedAggregator.new.aggregate(limit: 50, user: current_user)
   end
 
   def interact
@@ -11,7 +11,7 @@ class FeedsController < ApplicationController
 
     case provider
     when "mastodon"
-      pa = ProviderAccount.where(provider: "mastodon").first
+      pa = ProviderAccount.where(provider: "mastodon", user_id: current_user.id).first
       raise "Kein Mastodon-Kanal" unless pa
       conn = Faraday.new(url: pa.instance) { |f| f.adapter Faraday.default_adapter }
       endpoint = action == "like" ? "/api/v1/statuses/#{item_id}/favourite" : "/api/v1/statuses/#{item_id}/reblog"
@@ -19,7 +19,7 @@ class FeedsController < ApplicationController
       head(resp.success? ? :ok : :unprocessable_entity)
 
     when "bluesky"
-      pa = ProviderAccount.where(provider: "bluesky").first
+      pa = ProviderAccount.where(provider: "bluesky", user_id: current_user.id).first
       raise "Kein Bluesky-Kanal" unless pa
       did, access = Posting::BlueskyClient.new(pa).send(:ensure_session)
       conn = Faraday.new(url: (pa.instance.presence || Posting::BlueskyClient::DEFAULT_BASE)) { |f| f.adapter Faraday.default_adapter }
@@ -32,7 +32,7 @@ class FeedsController < ApplicationController
       head(resp.success? ? :ok : :unprocessable_entity)
 
     when "threads"
-      pa = ProviderAccount.where(provider: "threads").first
+      pa = ProviderAccount.where(provider: "threads", user_id: current_user.id).first
       raise "Kein Threads-Kanal" unless pa
       conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
       endpoint = action == "like" ? "/v1.0/#{item_id}/likes" : "/v1.0/#{item_id}/reposts"

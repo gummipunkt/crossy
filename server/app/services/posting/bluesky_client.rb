@@ -41,7 +41,7 @@ module Posting
         "createdAt" => Time.now.utc.iso8601
       }
 
-      # Medien (max. 4 Bilder)
+      # Media (max. 4 Images)
       images = []
       Array(post.media_attachments).first(4).each do |ma|
         next unless ma.file.attached?
