@@ -26,11 +26,16 @@
     <header class="border-b bg-white">
       <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
         <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
-        <nav class="text-sm space-x-4">
+        <nav class="text-sm space-x-4 flex items-center">
           <%= link_to "Composer", new_post_path, class: "text-blue-600 hover:underline" %>
           <%= link_to "Timeline", "/timeline", class: "text-blue-600 hover:underline" %>
-          <%= link_to "Eigene Posts", "/my", class: "text-blue-600 hover:underline" %>
-          <%= link_to "Kanäle", provider_accounts_path, class: "text-blue-600 hover:underline" %>
+          <%= link_to "My Posts", "/my", class: "text-blue-600 hover:underline" %>
+          <%= link_to "Networks", provider_accounts_path, class: "text-blue-600 hover:underline" %>
+          <% if user_signed_in? %>
+            <span class="text-gray-400">|</span>
+            <span class="text-xs text-gray-600"><%= current_user.email %></span>
+            <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "text-gray-700 hover:underline" %>
+          <% end %>
         </nav>
       </div>
     </header>

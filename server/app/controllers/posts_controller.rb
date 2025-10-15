@@ -1,12 +1,13 @@
 class PostsController < ApplicationController
   def new
     @post = Post.new
-    # Hide duplicate entries (same provider/handle/instance) in the selection
-    @provider_accounts = ProviderAccount.order(:provider, :handle).to_a.uniq { |pa| [pa.provider, pa.handle, pa.instance.to_s] }
+    # Only current user's channels; hide duplicates (same provider/handle/instance)
+    scope = ProviderAccount.where(user_id: current_user.id)
+    @provider_accounts = scope.order(:provider, :handle).to_a.uniq { |pa| [pa.provider, pa.handle, pa.instance.to_s] }
   end
 
   def create
-    @post = Post.new(post_params)
+    @post = current_user.posts.build(post_params)
     if @post.save
       # Create media (optional)
       files = Array(params[:files])
@@ -23,7 +24,7 @@ class PostsController < ApplicationController
       end
 
       provider_ids = Array(params[:provider_account_ids]).reject(&:blank?)
-      provider_accounts = ProviderAccount.where(id: provider_ids)
+      provider_accounts = ProviderAccount.where(user_id: current_user.id, id: provider_ids)
 
       deliveries = provider_accounts.map do |pa|
         Delivery.create!(post: @post, provider_account: pa, status: "queued", dedup_key: SecureRandom.uuid)
@@ -33,7 +34,7 @@ class PostsController < ApplicationController
 
       redirect_to @post, notice: "Post planed to (#{deliveries.size} network(s)"
     else
-      @provider_accounts = ProviderAccount.order(:provider, :handle)
+      @provider_accounts = ProviderAccount.where(user_id: current_user.id).order(:provider, :handle)
       flash.now[:alert] = "Please enter text"
       render :new, status: :unprocessable_entity
     end
