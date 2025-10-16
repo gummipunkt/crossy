@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_16_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -109,8 +109,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_120000) do
     t.text "access_token_ciphertext"
     t.text "refresh_token_ciphertext"
     t.string "handle_bidx"
+    t.datetime "threads_token_expires_at"
     t.index ["handle_bidx"], name: "index_provider_accounts_on_handle_bidx"
     t.index ["provider", "handle", "instance"], name: "idx_provider_accounts_identity", unique: true
+    t.index ["threads_token_expires_at"], name: "index_provider_accounts_on_threads_token_expires_at"
     t.index ["user_id"], name: "index_provider_accounts_on_user_id"
   end
 

@@ -7,9 +7,12 @@ SecureHeaders::Configuration.default do |config|
     default_src: ["'self'"],
     script_src: ["'self'", "'unsafe-inline'"],
     style_src: ["'self'", "'unsafe-inline'"],
-    # Remote Bilder von externen Providern erlauben
+    # Remote Images from external providers
     img_src: ["'self'", "data:", "https:", "http:"],
-    connect_src: ["'self'"]
+    connect_src: ["'self'", "https://graph.threads.net", "https://www.threads.net"],
+    frame_ancestors: ["'self'"],
+    frame_src: ["'self'", "https://www.threads.net"],
+    child_src: ["'self'", "https://www.threads.net"]
   }
 end
 
