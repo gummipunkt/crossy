@@ -1,5 +1,7 @@
 # Crossy
 
+![Crossy logo](https://github.com/gummipunkt/crossy/blob/main/server/app/assets/images/crossy_logo.svg)
+
 A small Rails app that helps you post to multiple social networks at once. It started as a single‑user tool and is being built so it can grow into a multi‑user SaaS later.
 
 Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wiring is there; server‑side signing will follow).
@@ -11,6 +13,8 @@ Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wir
 - Background deliveries with per‑provider status
 - A unified timeline across your connected accounts (auto‑refresh, like/repost)
 - Encrypted token storage (Lockbox + BlindIndex)
+- Sign up and sign in (Devise), 2FA-ready
+- Admin area to manage users (promote to admin, delete users)
 
 ## Tech
 
@@ -135,6 +139,6 @@ Gems get reinstalled every boot
 
 ## License
 
-MIT
+Licensed under EUPL v1.2. See the official text: https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
 
 
