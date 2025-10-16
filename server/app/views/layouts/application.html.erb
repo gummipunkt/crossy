@@ -22,15 +22,23 @@
     <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
   </head>
 
-  <body class="bg-gray-50 text-gray-900">
+  <body class="min-h-screen flex flex-col bg-gray-50 text-gray-900">
     <header class="border-b bg-white">
       <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
+        <div class="flex items-center gap-3">
+          <%= link_to root_path, class: "inline-block" do %>
+            <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-8 w-8" %>
+          <% end %>
+          <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
+        </div>
         <nav class="text-sm space-x-4 flex items-center">
           <%= link_to "Composer", new_post_path, class: "text-blue-600 hover:underline" %>
           <%= link_to "Timeline", "/timeline", class: "text-blue-600 hover:underline" %>
           <%= link_to "My Posts", "/my", class: "text-blue-600 hover:underline" %>
           <%= link_to "Networks", provider_accounts_path, class: "text-blue-600 hover:underline" %>
+          <% if current_user&.admin? %>
+            <%= link_to "Admin", admin_users_path, class: "text-blue-600 hover:underline" %>
+          <% end %>
           <% if user_signed_in? %>
             <span class="text-gray-400">|</span>
             <span class="text-xs text-gray-600"><%= current_user.email %></span>
@@ -40,7 +48,7 @@
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 py-6">
+    <main class="flex-1 max-w-3xl mx-auto px-4 py-6">
       <% if notice.present? %>
         <div class="mb-4 rounded-md bg-green-50 text-green-900 px-4 py-3"><%= notice %></div>
       <% end %>
@@ -50,5 +58,18 @@
 
       <%= yield %>
     </main>
+    <footer class="mt-auto border-t bg-white">
+      <div class="max-w-3xl mx-auto px-4 py-4 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-5 w-5" %>
+          <span>Crossy</span>
+        </div>
+        <div class="space-x-3">
+          <a href="https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12" target="_blank" rel="noopener" class="hover:underline">License: EUPL v1.2</a>
+          <a href="https://github.com/gummipunkt/crossy" target="_blank" rel="noopener" class="hover:underline">GitHub</a>
+          <a href="https://www.gummipunkt.eu" target="_blank" rel="noopener" class="hover:underline">made by gummipunkt</a>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>

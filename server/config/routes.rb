@@ -31,4 +31,12 @@ Rails.application.routes.draw do
 
   resources :posts, only: [:new, :create, :show]
   root to: "posts#new"
+
+  namespace :admin do
+    resources :users, only: [:index, :show, :destroy] do
+      member do
+        post :make_admin
+      end
+    end
+  end
 end
