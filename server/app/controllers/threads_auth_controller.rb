@@ -75,11 +75,9 @@ class ThreadsAuthController < ApplicationController
 
     pa = ProviderAccount.find_or_create_by!(provider: "threads", handle: user_id)
     # Optional: Save expiration if available
-    if expires_in
-      pa.update!(access_token: access_token, public_key: "expires_at=#{(Time.now + expires_in.to_i).utc.iso8601}")
-    else
-      pa.update!(access_token: access_token)
-    end
+    attrs = { access_token: access_token }
+    attrs[:threads_token_expires_at] = Time.now + expires_in.to_i if expires_in
+    pa.update!(attrs)
 
     redirect_to new_post_path, notice: "Threads connected as #{user_id}"
   end

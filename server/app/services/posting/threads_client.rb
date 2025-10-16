@@ -8,7 +8,7 @@ module Posting
 
     # Text-Post und optional ein Bild (öffentlich erreichbar via PUBLIC_BASE_URL)
     def post!(post, media_attachments: [])
-      access_token = @provider_account.access_token
+      access_token = ensure_fresh_token
       user_id = @provider_account.handle # in OAuth-Callback als me.id gespeichert
       raise "Missing access_token" if access_token.to_s.strip.empty?
       raise "Missing user id" if user_id.to_s.strip.empty?
@@ -44,9 +44,11 @@ module Posting
             access_token: access_token
           })
           if refresh.success?
-            new_token = (JSON.parse(refresh.body) rescue {})["access_token"]
+            body = (JSON.parse(refresh.body) rescue {})
+            new_token = body["access_token"]
+            expires_in = body["expires_in"]
             if new_token.present?
-              @provider_account.update!(access_token: new_token)
+              @provider_account.update!(access_token: new_token, threads_token_expires_at: (Time.now + expires_in.to_i rescue nil))
               params[:access_token] = new_token
               resp = conn.post("/v1.0/#{user_id}/threads") do |req|
                 req.headers["Accept"] = "application/json"
@@ -65,6 +67,27 @@ module Posting
     end
 
     private
+    def ensure_fresh_token
+      token = @provider_account.access_token.to_s
+      exp = @provider_account.threads_token_expires_at
+      # Refresh 1 day before expiry if known
+      if exp && Time.now > (exp - 1.day)
+        refresh = Faraday.get("#{GRAPH_BASE}/refresh_access_token", {
+          grant_type: "th_refresh_token",
+          access_token: token
+        })
+        if refresh.success?
+          body = (JSON.parse(refresh.body) rescue {})
+          new_token = body["access_token"]
+          expires_in = body["expires_in"]
+          if new_token.present?
+            @provider_account.update!(access_token: new_token, threads_token_expires_at: (Time.now + expires_in.to_i rescue nil))
+            return new_token
+          end
+        end
+      end
+      token
+    end
 
     def first_public_image_url(post)
       ma = Array(post.media_attachments).find { |m| m.file.attached? && m.content_type.to_s.start_with?("image/") }
