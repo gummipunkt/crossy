@@ -1,0 +1,31 @@
+<h1 class="text-xl font-semibold mb-4">Users</h1>
+
+<table class="w-full text-sm">
+  <thead>
+    <tr class="text-left border-b">
+      <th class="py-2">Email</th>
+      <th class="py-2">Networks</th>
+      <th class="py-2">Role</th>
+      <th class="py-2 text-right">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @users.each do |u| %>
+      <tr class="border-b">
+        <td class="py-2"><%= link_to u.email, admin_user_path(u), class: "text-blue-600 hover:underline" %></td>
+        <td class="py-2"><%= u.read_attribute(:networks_count) %></td>
+        <td class="py-2"><%= u.admin? ? "Admin" : "User" %></td>
+        <td class="py-2 text-right space-x-2">
+          <% unless u.admin? %>
+            <%= button_to "Make admin", make_admin_admin_user_path(u), method: :post, class: "text-xs text-purple-700 hover:underline" %>
+          <% end %>
+          <% if u != current_user %>
+            <%= button_to "Delete", admin_user_path(u), method: :delete, data: { confirm: "Delete this user?" }, class: "text-xs text-red-700 hover:underline" %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+
