@@ -71,7 +71,12 @@ docker-compose exec -w /app/server web bash -lc "bin/rails javascript:install:es
 
 ## Configuration
 
-Environment variables are managed in `docker-compose.yml`. Set these before you start:
+Environment variables can be provided either via `docker-compose.yml` or an env file. Recommended:
+
+- Development: create `.env` in project root (see `.env.example`).
+- Production: create `.env.production` and run with `docker compose --env-file .env.production up -d`.
+
+Set these variables:
 
 - Lockbox / BlindIndex
   - `LOCKBOX_MASTER_KEY`
@@ -80,7 +85,14 @@ Environment variables are managed in `docker-compose.yml`. Set these before you 
   - `THREADS_APP_ID`
   - `THREADS_APP_SECRET`
   - `THREADS_CLIENT_TOKEN`
-  - `PUBLIC_BASE_URL` (used for public asset URLs)
+  - `PUBLIC_BASE_URL` (used for OAuth redirects, mailer links, public asset URLs)
+
+- SMTP (password reset emails)
+  - `MAILER_SENDER`
+  - `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`
+  - `SMTP_AUTH` (login/plain), `SMTP_STARTTLS` (true/false), `SMTP_OPENSSL_VERIFY_MODE` (optional)
+
+Examples: see `env/.env.production.example` and `.env.example`.
 
 If you change env, recreate the containers:
 
