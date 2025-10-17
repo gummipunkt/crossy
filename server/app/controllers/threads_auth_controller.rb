@@ -66,6 +66,19 @@ class ThreadsAuthController < ApplicationController
       end
     end
 
+    # If token still short-lived (~1h), try to refresh once
+    if expires_in.nil? || expires_in.to_i <= 3600
+      refresh_resp2 = Faraday.get("https://graph.threads.net/refresh_access_token", {
+        grant_type: "th_refresh_token",
+        access_token: access_token
+      })
+      if refresh_resp2.success?
+        rj = JSON.parse(refresh_resp2.body) rescue {}
+        access_token = rj["access_token"] || access_token
+        expires_in   = rj["expires_in"] || expires_in
+      end
+    end
+
     me_resp = Faraday.get("https://graph.threads.net/v1.0/me", { access_token: access_token })
     unless me_resp.success?
       return redirect_to new_post_path, alert: "Threads /me Fehler: #{me_resp.status}"
