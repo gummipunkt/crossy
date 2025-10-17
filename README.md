@@ -37,7 +37,7 @@ Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wir
 - Security: Devise, Rack::Attack, Secure Headers, Lockbox, BlindIndex
 - Everything runs in Docker
 
-## Quick start (Docker)
+## Development (Docker)
 
 Requirements: Docker and Docker Compose.
 
@@ -46,19 +46,19 @@ Requirements: Docker and Docker Compose.
 ```bash
 git clone https://github.com/yourname/crossy.git
 cd crossy
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 2) Set up the database
 
 ```bash
-docker-compose exec -w /app/server web bash -lc "bin/rails db:create db:migrate"
+docker compose exec -w /app/server web bash -lc "bin/rails db:create db:migrate"
 ```
 
 3) Build frontend assets (first run)
 
 ```bash
-docker-compose exec -w /app/server web bash -lc "bin/rails javascript:install:esbuild || true; bin/rails css:install:tailwind || true; npm install; bin/rails javascript:build && bin/rails css:build"
+docker compose exec -w /app/server web bash -lc "bin/rails javascript:install:esbuild || true; bin/rails css:install:tailwind || true; npm install; bin/rails javascript:build && bin/rails css:build"
 ```
 
 4) Open the app
@@ -69,12 +69,68 @@ docker-compose exec -w /app/server web bash -lc "bin/rails javascript:install:es
 - Your own posts: `/my`
 - Provider accounts: `/provider_accounts`
 
+## Production (Docker)
+
+Use the dedicated production compose file. Provide your secrets in `env/.env.production`.
+
+1) Create `env/.env.production`
+
+Minimal example:
+
+```env
+RAILS_ENV=production
+RACK_ENV=production
+PUBLIC_BASE_URL=https://your-domain.example
+MAILER_SENDER=Crossy <no-reply@your-domain.example>
+
+# Database (managed Postgres)
+DATABASE_URL=postgres://user:pass@host:5432/dbname?sslmode=require
+
+# Locks/indices
+LOCKBOX_MASTER_KEY=0000...64hex...
+BLIND_INDEX_MASTER_KEY="1111...64hex..."  # keep quoted
+
+# SMTP
+SMTP_ADDRESS=smtp.your-domain.example
+SMTP_PORT=587
+SMTP_DOMAIN=your-domain.example
+SMTP_USERNAME=your-user
+SMTP_PASSWORD=your-pass
+SMTP_AUTH=login
+SMTP_STARTTLS=true
+
+# Providers
+THREADS_APP_ID=...
+THREADS_APP_SECRET=...
+THREADS_CLIENT_TOKEN=...
+BLUESKY_BASE=https://bsky.social
+THREADS_GRAPH_BASE=https://graph.threads.net
+THREADS_OAUTH_BASE=https://www.threads.net
+```
+
+2) Boot production
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+3) Logs
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f web
+```
+
+Notes:
+- The production compose runs `db:migrate`, builds JS/CSS, and precompiles assets on startup.
+- Put a reverse proxy (Caddy/Nginx) in front of port 3000, or adjust the published port.
+- Persistent volumes store gems and uploads: `bundle-data`, `storage`.
+
 ## Configuration
 
-Environment variables can be provided either via `docker-compose.yml` or an env file. Recommended:
+Environment variables can be provided either via `docker-compose.yml`/`docker-compose.prod.yml` or an env file. Recommended:
 
-- Development: create `.env` in project root (see `.env.example`).
-- Production: create `.env.production` and run with `docker compose --env-file .env.production up -d`.
+- Development: use `docker compose` as shown above; defaults are set in `docker-compose.yml`. Optionally create `.env` (see `.env.example`).
+- Production: use `docker-compose.prod.yml` with `env/.env.production`.
 
 Set these variables:
 
@@ -86,18 +142,28 @@ Set these variables:
   - `THREADS_APP_SECRET`
   - `THREADS_CLIENT_TOKEN`
   - `PUBLIC_BASE_URL` (used for OAuth redirects, mailer links, public asset URLs)
+  - `THREADS_GRAPH_BASE` (optional; defaults to `https://graph.threads.net`)
+  - `THREADS_OAUTH_BASE` (optional; defaults to `https://www.threads.net`)
 
 - SMTP (password reset emails)
   - `MAILER_SENDER`
   - `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`
   - `SMTP_AUTH` (login/plain), `SMTP_STARTTLS` (true/false), `SMTP_OPENSSL_VERIFY_MODE` (optional)
 
+- Database
+  - `DATABASE_URL` (required in production)
+  - `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, `CABLE_DATABASE_URL` (optional; fall back to `DATABASE_URL`)
+  - `DB_POOL`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, `DB_REAPING_FREQUENCY`, `DB_PREPARED_STATEMENTS` (optional tuning)
+
+- Bluesky
+  - `BLUESKY_BASE` (optional; defaults to `https://bsky.social`)
+
 Examples: see `env/.env.production.example` and `.env.example`.
 
 If you change env, recreate the containers:
 
 ```bash
-docker-compose down && docker-compose up -d --force-recreate --build
+docker compose down && docker compose up -d --force-recreate --build
 ```
 
 ## Connecting providers
@@ -112,7 +178,7 @@ Bluesky
 - Save the refresh token once:
 
 ```bash
-docker-compose exec -w /app/server web bash -lc "bin/rails runner 'pa=ProviderAccount.where(provider: \"bluesky\").first; Posting::BlueskyClient.new(pa).login!(ENV.fetch(\"BSKY_APP_PASSWORD\"))'"
+docker compose exec -w /app/server web bash -lc "bin/rails runner 'pa=ProviderAccount.where(provider: \"bluesky\").first; Posting::BlueskyClient.new(pa).login!(ENV.fetch(\"BSKY_APP_PASSWORD\"))'"
 ```
 
 Threads

@@ -1,0 +1,76 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - bundle-data:/usr/local/bundle
+      - storage:/app/server/storage
+    working_dir: /app/server
+    env_file:
+      - env/.env.production
+    environment:
+      RAILS_ENV: production
+      RACK_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      RAILS_SERVE_STATIC_FILES: "true"
+      DB_POOL: ${DB_POOL:-5}
+      DB_SSLMODE: ${DB_SSLMODE}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
+      DB_REAPING_FREQUENCY: ${DB_REAPING_FREQUENCY:-10}
+      DB_PREPARED_STATEMENTS: ${DB_PREPARED_STATEMENTS:-true}
+      THREADS_GRAPH_BASE: ${THREADS_GRAPH_BASE:-https://graph.threads.net}
+      THREADS_OAUTH_BASE: ${THREADS_OAUTH_BASE:-https://www.threads.net}
+      BLUESKY_BASE: ${BLUESKY_BASE:-https://bsky.social}
+    ports:
+      - "3000:3000"
+    command: >-
+      bash -lc "bundle install --jobs 4 && bin/rails db:migrate && bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile && bin/rails server -e production -b 0.0.0.0 -p 3000"
+
+  worker:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    volumes:
+      - ./:/app
+      - bundle-data:/usr/local/bundle
+    working_dir: /app/server
+    env_file:
+      - env/.env.production
+    environment:
+      RAILS_ENV: production
+      RACK_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      DB_POOL: ${DB_POOL:-5}
+      DB_SSLMODE: ${DB_SSLMODE}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
+      DB_REAPING_FREQUENCY: ${DB_REAPING_FREQUENCY:-10}
+      DB_PREPARED_STATEMENTS: ${DB_PREPARED_STATEMENTS:-true}
+      THREADS_GRAPH_BASE: ${THREADS_GRAPH_BASE:-https://graph.threads.net}
+      THREADS_OAUTH_BASE: ${THREADS_OAUTH_BASE:-https://www.threads.net}
+      BLUESKY_BASE: ${BLUESKY_BASE:-https://bsky.social}
+    command: >-
+      bash -lc "bundle install --jobs 4 && bin/rails db:prepare && bin/rails solid_queue:start"
+
+volumes:
+  redis-data:
+  bundle-data:
+  storage:
+
+

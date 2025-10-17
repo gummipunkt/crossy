@@ -5,7 +5,8 @@ class ThreadsAuthController < ApplicationController
     state = SecureRandom.hex(16)
     session[:threads_oauth_state] = state
     scope = %w[threads_basic threads_content_publish].join(",")
-    url = "https://www.threads.net/oauth/authorize?client_id=#{CGI.escape(app_id)}&redirect_uri=#{CGI.escape(redirect_uri)}&response_type=code&scope=#{CGI.escape(scope)}&state=#{state}"
+    oauth_base = ENV.fetch("THREADS_OAUTH_BASE", "https://www.threads.net")
+    url = "#{oauth_base}/oauth/authorize?client_id=#{CGI.escape(app_id)}&redirect_uri=#{CGI.escape(redirect_uri)}&response_type=code&scope=#{CGI.escape(scope)}&state=#{state}"
     redirect_to url, allow_other_host: true
   end
 
@@ -20,7 +21,8 @@ class ThreadsAuthController < ApplicationController
     redirect_uri = callback_url
 
     # 1) Get short-lived token
-    token_resp = Faraday.post("https://graph.threads.net/oauth/access_token", {
+    graph_base = ENV.fetch("THREADS_GRAPH_BASE", "https://graph.threads.net")
+    token_resp = Faraday.post("#{graph_base}/oauth/access_token", {
       client_id: app_id,
       client_secret: app_secret,
       redirect_uri: redirect_uri,
@@ -42,7 +44,7 @@ class ThreadsAuthController < ApplicationController
     }
     exchange_params[:client_token] = client_token if client_token
 
-    exchange_resp = Faraday.post("https://graph.threads.net/oauth/access_token", exchange_params)
+    exchange_resp = Faraday.post("#{graph_base}/oauth/access_token", exchange_params)
 
     access_token = nil
     expires_in = nil
@@ -52,7 +54,7 @@ class ThreadsAuthController < ApplicationController
       expires_in   = exchange_json["expires_in"]
     else
       # Fallback: Try refresh
-      refresh_resp = Faraday.get("https://graph.threads.net/refresh_access_token", {
+      refresh_resp = Faraday.get("#{graph_base}/refresh_access_token", {
         grant_type: "th_refresh_token",
         access_token: short_token
       })
@@ -68,7 +70,7 @@ class ThreadsAuthController < ApplicationController
 
     # If token still short-lived (~1h), try to refresh once
     if expires_in.nil? || expires_in.to_i <= 3600
-      refresh_resp2 = Faraday.get("https://graph.threads.net/refresh_access_token", {
+      refresh_resp2 = Faraday.get("#{graph_base}/refresh_access_token", {
         grant_type: "th_refresh_token",
         access_token: access_token
       })
@@ -79,7 +81,7 @@ class ThreadsAuthController < ApplicationController
       end
     end
 
-    me_resp = Faraday.get("https://graph.threads.net/v1.0/me", { access_token: access_token })
+    me_resp = Faraday.get("#{graph_base}/v1.0/me", { access_token: access_token })
     unless me_resp.success?
       return redirect_to new_post_path, alert: "Threads /me Fehler: #{me_resp.status}"
     end
