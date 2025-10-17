@@ -13,8 +13,19 @@ Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wir
 - Background deliveries with per‑provider status
 - A unified timeline across your connected accounts (auto‑refresh, like/repost)
 - Encrypted token storage (Lockbox + BlindIndex)
-- Sign up and sign in (Devise), 2FA-ready
+- Sign up and sign in (Devise)
+- Multi-User mode
 - Admin area to manage users (promote to admin, delete users)
+
+## Screenshots
+
+![Timeline](server/app/assets/samples/SCR-20251017-kanm.png)
+
+![Composer](server/app/assets/samples/SCR-20251017-kcgi.png)
+
+![Providers](server/app/assets/samples/SCR-20251017-kbon.png)
+
+![Login](server/app/assets/samples/SCR-20251017-kbgb.jpeg)
 
 ## Tech
 
@@ -132,10 +143,10 @@ Gems get reinstalled every boot
 ## Roadmap
 
 - Nostr server‑side session signing
-- Multi‑user mode
 - Provider webhooks/streaming
 - Better media support (video, carousels)
 - Threads support for timeline
+- User Profile Management Page
 
 ## License
 
