@@ -4,7 +4,7 @@ require "uri"
 
 module Posting
   class ThreadsClient < BaseClient
-    GRAPH_BASE = "https://graph.threads.net"
+    GRAPH_BASE = ENV.fetch("THREADS_GRAPH_BASE", "https://graph.threads.net")
 
     # Text-Post und optional ein Bild (öffentlich erreichbar via PUBLIC_BASE_URL)
     def post!(post, media_attachments: [])

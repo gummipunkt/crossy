@@ -94,18 +94,21 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: server_production
-    username: server
-    password: <%= ENV["SERVER_DATABASE_PASSWORD"] %>
+    url: <%= ENV.fetch("DATABASE_URL") %>
+    pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS") { 5 } } %>
+    sslmode: <%= ENV["DB_SSLMODE"] if ENV["DB_SSLMODE"].present? %>
+    connect_timeout: <%= ENV.fetch("DB_CONNECT_TIMEOUT", 5) %>
+    reaping_frequency: <%= ENV.fetch("DB_REAPING_FREQUENCY", 10) %>
+    prepared_statements: <%= ENV.fetch("DB_PREPARED_STATEMENTS", "true") == "true" %>
   cache:
     <<: *primary_production
-    database: server_production_cache
+    url: <%= ENV["CACHE_DATABASE_URL"].presence || ENV["DATABASE_URL"] %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: server_production_queue
+    url: <%= ENV["QUEUE_DATABASE_URL"].presence || ENV["DATABASE_URL"] %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: server_production_cable
+    url: <%= ENV["CABLE_DATABASE_URL"].presence || ENV["DATABASE_URL"] %>
     migrations_paths: db/cable_migrate

@@ -4,7 +4,7 @@ require "time"
 
 module Posting
   class BlueskyClient < BaseClient
-    DEFAULT_BASE = "https://bsky.social"
+    DEFAULT_BASE = ENV.fetch("BLUESKY_BASE", "https://bsky.social")
 
     # First login with app password: saves refreshJwt in provider_accounts.refresh_token
     def login!(password)

@@ -41,13 +41,23 @@ services:
       CACHE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_cache
       QUEUE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_queue
       CABLE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_cable
+      # DB tuning (wirken über config/database.yml)
+      DB_POOL: 5
+      DB_SSLMODE: disable
+      DB_CONNECT_TIMEOUT: 5
+      DB_REAPING_FREQUENCY: 10
+      DB_PREPARED_STATEMENTS: 'true'
       LOCKBOX_MASTER_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
       BLIND_INDEX_MASTER_KEY: '1111111111111111111111111111111111111111111111111111111111111111'
       REDIS_URL: redis://redis:6379/0
       THREADS_APP_ID: '1173237338204481'
       THREADS_APP_SECRET: 'e5d7d73e2bc3fbfd0a855a196ec93555'
       THREADS_CLIENT_TOKEN: '046abb1154100a94c63697daabed4d61'
+      THREADS_GRAPH_BASE: 'https://graph.threads.net'
+      THREADS_OAUTH_BASE: 'https://www.threads.net'
       PUBLIC_BASE_URL: 'https://unreconcilable-giana-nonsynoptical.ngrok-free.dev'
+      MAILER_SENDER: 'Crossy <no-reply@example.com>'
+      BLUESKY_BASE: 'https://bsky.social'
     ports:
       - "3000:3000"
     command: bash -lc "bundle install && bin/rails db:prepare && bin/rails server -b 0.0.0.0 -p 3000"
@@ -71,13 +81,23 @@ services:
       CACHE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_cache
       QUEUE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_queue
       CABLE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_development_cable
+      # DB tuning (wirken über config/database.yml)
+      DB_POOL: 5
+      DB_SSLMODE: disable
+      DB_CONNECT_TIMEOUT: 5
+      DB_REAPING_FREQUENCY: 10
+      DB_PREPARED_STATEMENTS: 'true'
       LOCKBOX_MASTER_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
       BLIND_INDEX_MASTER_KEY: '1111111111111111111111111111111111111111111111111111111111111111'
       REDIS_URL: redis://redis:6379/0
       THREADS_APP_ID: '1173237338204481'
       THREADS_APP_SECRET: 'e5d7d73e2bc3fbfd0a855a196ec93555'
       THREADS_CLIENT_TOKEN: '046abb1154100a94c63697daabed4d61'
+      THREADS_GRAPH_BASE: 'https://graph.threads.net'
+      THREADS_OAUTH_BASE: 'https://www.threads.net'
       PUBLIC_BASE_URL: 'https://unreconcilable-giana-nonsynoptical.ngrok-free.dev'
+      MAILER_SENDER: 'Crossy <no-reply@example.com>'
+      BLUESKY_BASE: 'https://bsky.social'
     command: bash -lc "bundle install && bin/rails db:prepare && bin/rails solid_queue:start"
 
 volumes:
