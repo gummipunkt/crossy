@@ -1,16 +1,16 @@
 <h1 class="text-xl font-semibold mb-4">My Posts</h1>
 
-<div class="space-y-5">
+<div class="space-y-4">
   <% @posts.each do |p| %>
-    <div class="rounded-md border bg-white p-5">
-      <div class="text-sm text-gray-700 flex items-center justify-between">
+    <div class="rounded-md border bg-white p-4 sm:p-5 shadow-sm">
+      <div class="text-sm text-gray-700 flex items-start sm:items-center justify-between gap-2">
         <span class="font-medium">Post #<%= p.id %></span>
-        <span class="text-xs text-gray-500"><%= p.created_at.in_time_zone.strftime('%Y-%m-%d %H:%M') %></span>
+        <span class="text-xs text-gray-500 shrink-0"><%= p.created_at.in_time_zone.strftime('%Y-%m-%d %H:%M') %></span>
       </div>
       <% if p.content_warning.present? %>
         <div class="mt-2 text-xs text-orange-700">CW: <%= p.content_warning %></div>
       <% end %>
-      <div class="mt-2 whitespace-pre-line text-[15px]"><%= p.content_text %></div>
+      <div class="mt-2 whitespace-pre-line text-[15px] break-words"><%= p.content_text %></div>
       <div class="mt-3 flex flex-wrap gap-2">
         <% p.deliveries.each do |d| %>
           <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border <%= 

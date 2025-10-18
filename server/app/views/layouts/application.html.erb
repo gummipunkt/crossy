@@ -24,14 +24,14 @@
 
   <body class="min-h-screen flex flex-col bg-gray-50 text-gray-900">
     <header class="border-b bg-white">
-      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <%= link_to root_path, class: "inline-block" do %>
             <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-8 w-8" %>
           <% end %>
           <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
         </div>
-        <nav class="text-sm space-x-4 flex items-center">
+        <nav class="text-sm flex flex-wrap items-center gap-3 sm:gap-4">
           <% if user_signed_in? %>
             <%= link_to "Composer", new_post_path, class: "text-blue-600 hover:underline" %>
             <%= link_to "Timeline", "/timeline", class: "text-blue-600 hover:underline" %>
@@ -40,9 +40,9 @@
             <% if current_user&.admin? %>
               <%= link_to "Admin", admin_users_path, class: "text-blue-600 hover:underline" %>
             <% end %>
-            <span class="text-gray-400">|</span>
-            <span class="text-xs text-gray-600"><%= current_user.email %></span>
-            <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "text-gray-700 hover:underline" %>
+            <span class="text-gray-400 hidden sm:inline">|</span>
+            <span class="text-xs text-gray-600 hidden sm:inline"><%= current_user.email %></span>
+            <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "text-sm text-gray-700 hover:underline" %>
           <% else %>
             <%= link_to "Login", new_user_session_path, class: "text-blue-600 hover:underline" %>
             <%= link_to "Sign up", new_user_registration_path, class: "text-blue-600 hover:underline" %>
