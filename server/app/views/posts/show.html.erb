@@ -1,38 +1,33 @@
 <h1 class="text-xl font-semibold mb-4">Beitrag #<%= @post.id %></h1>
 
-<p><strong>Text:</strong> <%= @post.content_text %></p>
-<% if @post.content_warning.present? %>
-  <p><strong>CW:</strong> <%= @post.content_warning %></p>
-<% end %>
+<div class="rounded-md border bg-white p-5 shadow-sm">
+  <p class="mb-2"><strong>Text:</strong> <%= @post.content_text %></p>
+  <% if @post.content_warning.present? %>
+    <p><strong>CW:</strong> <%= @post.content_warning %></p>
+  <% end %>
+</div>
 
 <h2 class="text-lg font-medium mt-6 mb-2">Auslieferungen</h2>
-<table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
-  <thead>
-    <tr class="bg-gray-50">
-      <th class="text-left px-3 py-2">Provider</th>
-      <th class="text-left px-3 py-2">Status</th>
-      <th class="text-left px-3 py-2">Provider Post ID</th>
-      <th class="text-left px-3 py-2">Fehler</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @deliveries.each do |d| %>
-      <tr class="border-t">
-        <td class="px-3 py-2"><%= d.provider_account.provider %></td>
-        <td class="px-3 py-2"><%= d.status %></td>
-        <td class="px-3 py-2"><%= d.provider_post_id %></td>
-        <td class="px-3 py-2"><%= d.error_message %></td>
-      </tr>
-    <% end %>
-  </tbody>
-  </table>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <% @deliveries.each do |d| %>
+    <div class="rounded-md border bg-white p-5 shadow-sm">
+      <div class="text-sm font-medium mb-1"><%= d.provider_account.provider %></div>
+      <div class="text-sm">Status: <%= d.status %></div>
+      <% if d.provider_post_id.present? %>
+        <div class="text-xs text-gray-600 break-all mt-1">ID: <%= d.provider_post_id %></div>
+      <% end %>
+      <% if d.error_message.present? %>
+        <div class="text-xs text-red-700 mt-2">Error: <%= d.error_message %></div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
 
 <p class="mt-6"><%= link_to "New Post", new_post_path, class: "text-blue-600 hover:underline" %></p>
 
 <% if (pa = @deliveries.find { |d| d.provider_account.provider == 'nostr' }&.provider_account) %>
-  <hr>
   <h2 class="text-lg font-medium mt-6 mb-2">Nostr</h2>
-  <p>
+  <div class="rounded-md border bg-white p-5 shadow-sm">
     <div class="flex flex-wrap gap-3">
       <button type="button" onclick="window.NostrConnect.connect()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
         Mit Nostr Connect
@@ -44,7 +39,7 @@
         Event als JSON herunterladen
       </button>
     </div>
-  </p>
+  </div>
 <% end %>
 
 

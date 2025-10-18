@@ -63,7 +63,52 @@ module Posting
       end
 
       parsed = JSON.parse(resp.body) rescue {}
-      parsed["id"] || raise("Threads response missing id: #{resp.body}")
+      creation_id = parsed["id"] || raise("Threads response missing id: #{resp.body}")
+
+      # Publish step: some Threads Graph flows require publishing the created container
+      publish_ok = false
+      publish_resp = nil
+      begin
+        # Preferred: explicit publish endpoint with creation_id
+        publish_resp = conn.post("/v1.0/#{user_id}/threads_publish") do |req|
+          req.headers["Accept"] = "application/json"
+          req.options.timeout = 15
+          req.options.open_timeout = 5
+          req.body = { access_token: access_token, creation_id: creation_id }
+        end
+        publish_ok = publish_resp.success?
+      rescue => _e
+        publish_ok = false
+      end
+
+      unless publish_ok
+        # Fallback: try toggling the container to published
+        [
+          { key: :published, value: true },
+          { key: :is_published, value: true }
+        ].each do |flag|
+          begin
+            publish_resp = conn.post("/v1.0/#{creation_id}") do |req|
+              req.headers["Accept"] = "application/json"
+              req.options.timeout = 15
+              req.options.open_timeout = 5
+              req.body = { access_token: access_token, flag[:key] => flag[:value] }
+            end
+            if publish_resp.success?
+              publish_ok = true
+              break
+            end
+          rescue => _e
+            # continue to next fallback
+          end
+        end
+      end
+
+      unless publish_ok
+        Rails.logger.warn("Threads publish step failed for creation_id=#{creation_id}: #{publish_resp&.status} #{publish_resp&.body}")
+      end
+
+      creation_id
     end
 
     private
@@ -71,7 +116,8 @@ module Posting
       token = @provider_account.access_token.to_s
       exp = @provider_account.threads_token_expires_at
       # Refresh 1 day before expiry if known
-      if exp && Time.now > (exp - 1.day)
+      # Refresh 3 Tage vor Ablauf (Long-lived sollten ~60 Tage halten)
+      if exp && Time.now > (exp - 3.days)
         refresh = Faraday.get("#{GRAPH_BASE}/refresh_access_token", {
           grant_type: "th_refresh_token",
           access_token: token
@@ -81,7 +127,7 @@ module Posting
           new_token = body["access_token"]
           expires_in = body["expires_in"]
           if new_token.present?
-            @provider_account.update!(access_token: new_token, threads_token_expires_at: (Time.now + expires_in.to_i rescue nil))
+            @provider_account.update!(access_token: new_token, threads_token_expires_at: ((Time.now + expires_in.to_i).utc rescue nil))
             return new_token
           end
         end

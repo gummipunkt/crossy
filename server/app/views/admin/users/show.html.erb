@@ -1,41 +1,31 @@
 <h1 class="text-xl font-semibold mb-2"><%= @user.email %></h1>
 <p class="text-sm text-gray-600 mb-4">Role: <%= @user.admin? ? "Admin" : "User" %></p>
 
-<div class="mb-4">
+<div class="mb-4 flex flex-wrap items-center gap-2">
   <%= link_to "Back", admin_users_path, class: "text-sm text-blue-600 hover:underline" %>
   <% unless @user.admin? %>
-    <span class="mx-2 text-gray-300">|</span>
+    <span class="mx-2 text-gray-300 hidden sm:inline">|</span>
     <%= button_to "Make admin", make_admin_admin_user_path(@user), method: :post, class: "text-sm text-purple-700 hover:underline inline" %>
   <% end %>
   <% if @user != current_user %>
-    <span class="mx-2 text-gray-300">|</span>
+    <span class="mx-2 text-gray-300 hidden sm:inline">|</span>
     <%= button_to "Delete user", admin_user_path(@user), method: :delete, data: { confirm: "Delete this user?" }, class: "text-sm text-red-700 hover:underline inline" %>
   <% end %>
 </div>
 
 <h2 class="text-lg font-semibold mb-2">Connected networks</h2>
 <% if @accounts.any? %>
-  <div class="border rounded-md bg-white">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="text-left border-b">
-          <th class="py-2 px-3">Provider</th>
-          <th class="py-2 px-3">Handle</th>
-          <th class="py-2 px-3">Instance</th>
-          <th class="py-2 px-3">Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @accounts.each do |pa| %>
-          <tr class="border-b">
-            <td class="py-2 px-3"><%= pa.provider %></td>
-            <td class="py-2 px-3"><%= pa.handle %></td>
-            <td class="py-2 px-3"><%= pa.instance %></td>
-            <td class="py-2 px-3"><%= pa.created_at.in_time_zone.strftime('%Y-%m-%d %H:%M') %></td>
-          </tr>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <% @accounts.each do |pa| %>
+      <div class="rounded-md border bg-white p-5 shadow-sm">
+        <div class="text-sm font-medium mb-1"><%= pa.provider %></div>
+        <div class="text-sm break-all"><%= pa.handle %></div>
+        <% if pa.instance.present? %>
+          <div class="text-xs text-gray-600 mt-1 break-all"><%= pa.instance %></div>
         <% end %>
-      </tbody>
-    </table>
+        <div class="text-xs text-gray-500 mt-2"><%= pa.created_at.in_time_zone.strftime('%Y-%m-%d %H:%M') %></div>
+      </div>
+    <% end %>
   </div>
 <% else %>
   <p class="text-sm text-gray-600">No networks connected.</p>

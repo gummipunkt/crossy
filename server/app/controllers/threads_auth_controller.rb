@@ -1,4 +1,6 @@
 class ThreadsAuthController < ApplicationController
+  # Callback darf ohne Login laufen, Start der OAuth-Flow erfordert Login
+  skip_before_action :authenticate_user!, only: [:callback]
   def new
     app_id = ENV.fetch("THREADS_APP_ID")
     redirect_uri = callback_url
@@ -35,16 +37,12 @@ class ThreadsAuthController < ApplicationController
     token_json = JSON.parse(token_resp.body) rescue {}
     short_token = token_json["access_token"]
 
-    # 2) Change to long-lived token (POST, with client_token if available)
-    client_token = ENV["THREADS_CLIENT_TOKEN"].to_s.presence
-    exchange_params = {
+    # 2) Exchange short-lived to long-lived token (GET /access_token)
+    exchange_resp = Faraday.get("#{graph_base}/access_token", {
       grant_type: "th_exchange_token",
       client_secret: app_secret,
       access_token: short_token
-    }
-    exchange_params[:client_token] = client_token if client_token
-
-    exchange_resp = Faraday.post("#{graph_base}/oauth/access_token", exchange_params)
+    })
 
     access_token = nil
     expires_in = nil
@@ -88,10 +86,13 @@ class ThreadsAuthController < ApplicationController
     me = JSON.parse(me_resp.body) rescue {}
     user_id = me["id"]
 
-    pa = ProviderAccount.find_or_create_by!(provider: "threads", handle: user_id)
-    # Optional: Save expiration if available
+    unless current_user
+      return redirect_to new_user_session_path, alert: "Please sign in first"
+    end
+    pa = current_user.provider_accounts.find_or_create_by!(provider: "threads", handle: user_id)
+    # Save long-lived token and expiration if available
     attrs = { access_token: access_token }
-    attrs[:threads_token_expires_at] = Time.now + expires_in.to_i if expires_in
+    attrs[:threads_token_expires_at] = (Time.now + expires_in.to_i).utc if expires_in
     pa.update!(attrs)
 
     redirect_to new_post_path, notice: "Threads connected as #{user_id}"
@@ -100,8 +101,8 @@ class ThreadsAuthController < ApplicationController
   private
 
   def callback_url
-    # PUBLIC_BASE_URL for ngrok; fallback to localhost
-    base = ENV["PUBLIC_BASE_URL"].presence || "http://localhost:3000"
+    # Prefer current request host to preserve session cookies; fallback to PUBLIC_BASE_URL
+    base = request.base_url.presence || ENV["PUBLIC_BASE_URL"].presence || "http://localhost:3000"
     URI.join(base, "/auth/threads/callback").to_s
   end
 end
