@@ -96,6 +96,7 @@ class FeedAggregator
     rel = rel.where(user_id: user.id) if user
     rel.find_each do |pa|
       next if pa.access_token.blank?
+      app_id = ENV.fetch("THREADS_APP_ID")
       conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
 
       # Direkter Abruf inkl. Felder laut Doku
@@ -104,12 +105,12 @@ class FeedAggregator
         children{id,media_type,media_url,thumbnail_url}
       ].join(',')
       data = nil
-      resp2 = conn.get("/v1.0/me/threads", { access_token: pa.access_token, fields: fields, limit: 25 })
+      resp2 = conn.get("/v1.0/me/threads", { access_token: pa.access_token, fields: fields, limit: 25 }, { "X-IG-App-ID" => app_id })
       if resp2.success?
         data = (JSON.parse(resp2.body)["data"] rescue nil)
       elsif resp2.status == 400 && (JSON.parse(resp2.body) rescue {}).dig("error","code") == 190
         if (new_token = refresh_threads_token(pa))
-          resp2 = conn.get("/v1.0/me/threads", { access_token: new_token, fields: fields, limit: 25 })
+          resp2 = conn.get("/v1.0/me/threads", { access_token: new_token, fields: fields, limit: 25 }, { "X-IG-App-ID" => app_id })
           data = (JSON.parse(resp2.body)["data"] rescue nil) if resp2.success?
         end
       end

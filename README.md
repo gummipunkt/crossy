@@ -78,19 +78,40 @@ Use the dedicated production compose file. Provide your secrets in `env/.env.pro
 Minimal example:
 
 ```env
+# Rails
 RAILS_ENV=production
 RACK_ENV=production
+SECRET_KEY_BASE=<64+ char random secret>
+
+# Base URL 
 PUBLIC_BASE_URL=https://your-domain.example
-MAILER_SENDER=Crossy <no-reply@your-domain.example>
 
-# Database (managed Postgres)
+# Logging/Proxy
+RAILS_LOG_LEVEL=info
+RAILS_LOG_TO_STDOUT=true
+RAILS_FORCE_SSL=true
+ACTION_DISPATCH_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1
+
+# Database
+# Für Managed-Postgres: setze sslmode=require
 DATABASE_URL=postgres://user:pass@host:5432/dbname?sslmode=require
+# Optional: zusätzliche Verbindungen
+# CACHE_DATABASE_URL=...
+# QUEUE_DATABASE_URL=...
+# CABLE_DATABASE_URL=...
+# DB_POOL=5
+# DB_SSLMODE=require
+# DB_CONNECT_TIMEOUT=5
+# DB_REAPING_FREQUENCY=10
+# DB_PREPARED_STATEMENTS=true
 
-# Locks/indices
-LOCKBOX_MASTER_KEY=0000...64hex...
-BLIND_INDEX_MASTER_KEY="1111...64hex..."  # keep quoted
+# Secrets für Verschlüsselung
+# LOCKBOX_MASTER_KEY: 64 Hex-Zeichen (z. B. mit `ruby -e 'require "securerandom"; puts SecureRandom.hex(32)'`)
+LOCKBOX_MASTER_KEY=<64hex>
+# BLIND_INDEX_MASTER_KEY: exakt 64 Hex-Zeichen (immer in Anführungszeichen lassen)
+BLIND_INDEX_MASTER_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-# SMTP
+# SMTP (Passwort-Reset)
 SMTP_ADDRESS=smtp.your-domain.example
 SMTP_PORT=587
 SMTP_DOMAIN=your-domain.example
@@ -99,13 +120,16 @@ SMTP_PASSWORD=your-pass
 SMTP_AUTH=login
 SMTP_STARTTLS=true
 
-# Providers
+# Provider
+# Threads: verwende die Domain threads.net (nicht threads.com)
 THREADS_APP_ID=...
 THREADS_APP_SECRET=...
 THREADS_CLIENT_TOKEN=...
-BLUESKY_BASE=https://bsky.social
 THREADS_GRAPH_BASE=https://graph.threads.net
 THREADS_OAUTH_BASE=https://www.threads.net
+
+# Bluesky
+BLUESKY_BASE=https://bsky.social
 ```
 
 2) Boot production
@@ -121,16 +145,17 @@ docker compose -f docker-compose.prod.yml logs -f web
 ```
 
 Notes:
-- The production compose runs `db:migrate`, builds JS/CSS, and precompiles assets on startup.
-- Put a reverse proxy (Caddy/Nginx) in front of port 3000, or adjust the published port.
+- The production compose includes a local Postgres service for convenience. For managed Postgres, set `DATABASE_URL` and remove/ignore the `db` service.
+- It runs `db:prepare`, builds JS/CSS, and precompiles assets on startup. Healthcheck probes `GET /up`.
+- Default publish is `3022:3000`. Put a reverse proxy (Caddy/Nginx) in front or change the port mapping.
 - Persistent volumes store gems and uploads: `bundle-data`, `storage`.
 
 ## Configuration
 
 Environment variables can be provided either via `docker-compose.yml`/`docker-compose.prod.yml` or an env file. Recommended:
 
-- Development: use `docker compose` as shown above; defaults are set in `docker-compose.yml`. Optionally create `.env` (see `.env.example`).
-- Production: use `docker-compose.prod.yml` with `env/.env.production`.
+- Development: use `docker compose` as shown above; defaults are set in `docker-compose.yml`. Optional: `.env` (see `.env.example`).
+- Production: use `docker-compose.prod.yml` with `env/.env.production` (see `env/.env.production.example`).
 
 Set these variables:
 
@@ -144,6 +169,11 @@ Set these variables:
   - `PUBLIC_BASE_URL` (used for OAuth redirects, mailer links, public asset URLs)
   - `THREADS_GRAPH_BASE` (optional; defaults to `https://graph.threads.net`)
   - `THREADS_OAUTH_BASE` (optional; defaults to `https://www.threads.net`)
+
+Threads prerequisites
+- In deiner Threads-/Meta‑App die Redirect‑URI exakt whitelisten: `https://<your-domain>/auth/threads/callback`
+- App‑ID und Secret in `env/.env.production` setzen
+- Bei Problemen sicherstellen, dass die OAuth‑URL auf `threads.net` zeigt (nicht `.com`)
 
 - SMTP (password reset emails)
   - `MAILER_SENDER`

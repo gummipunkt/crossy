@@ -44,6 +44,7 @@ services:
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
       RAILS_FORCE_SSL: ${RAILS_FORCE_SSL:-true}
       RAILS_SERVE_STATIC_FILES: "true"
+
       DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production
       CACHE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_cache
       QUEUE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_queue

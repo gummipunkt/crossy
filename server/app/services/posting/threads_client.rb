@@ -13,6 +13,7 @@ module Posting
       raise "Missing access_token" if access_token.to_s.strip.empty?
       raise "Missing user id" if user_id.to_s.strip.empty?
 
+      app_id = ENV.fetch("THREADS_APP_ID")
       conn = Faraday.new(url: GRAPH_BASE) do |f|
         f.request :url_encoded
         f.adapter Faraday.default_adapter
@@ -31,6 +32,7 @@ module Posting
 
       resp = conn.post("/v1.0/#{user_id}/threads") do |req|
         req.headers["Accept"] = "application/json"
+        req.headers["X-IG-App-ID"] = app_id
         req.options.timeout = 15
         req.options.open_timeout = 5
         req.body = params
@@ -42,7 +44,7 @@ module Posting
           refresh = Faraday.get("#{GRAPH_BASE}/refresh_access_token", {
             grant_type: "th_refresh_token",
             access_token: access_token
-          })
+          }, { "X-IG-App-ID" => app_id })
           if refresh.success?
             body = (JSON.parse(refresh.body) rescue {})
             new_token = body["access_token"]
@@ -52,6 +54,7 @@ module Posting
               params[:access_token] = new_token
               resp = conn.post("/v1.0/#{user_id}/threads") do |req|
                 req.headers["Accept"] = "application/json"
+                req.headers["X-IG-App-ID"] = app_id
                 req.options.timeout = 15
                 req.options.open_timeout = 5
                 req.body = params
@@ -72,6 +75,7 @@ module Posting
         # Preferred: explicit publish endpoint with creation_id
         publish_resp = conn.post("/v1.0/#{user_id}/threads_publish") do |req|
           req.headers["Accept"] = "application/json"
+          req.headers["X-IG-App-ID"] = app_id
           req.options.timeout = 15
           req.options.open_timeout = 5
           req.body = { access_token: access_token, creation_id: creation_id }
@@ -90,6 +94,7 @@ module Posting
           begin
             publish_resp = conn.post("/v1.0/#{creation_id}") do |req|
               req.headers["Accept"] = "application/json"
+              req.headers["X-IG-App-ID"] = app_id
               req.options.timeout = 15
               req.options.open_timeout = 5
               req.body = { access_token: access_token, flag[:key] => flag[:value] }
