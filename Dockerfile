@@ -29,7 +29,7 @@ RUN mkdir -p ${APP_HOME}/server
 WORKDIR ${APP_HOME}
 
 # Install bundler
-RUN gem install bundler -v 2.5.9 --no-document
+RUN gem install bundler -v 2.5.11 --no-document
 
 # Default command will be overridden by docker-compose; keep it simple
 CMD ["bash", "-lc", "ruby -v && bundle -v"]
