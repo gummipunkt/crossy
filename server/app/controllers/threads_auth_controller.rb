@@ -1,3 +1,5 @@
+require "uri"
+
 class ThreadsAuthController < ApplicationController
   # Callback darf ohne Login laufen, Start der OAuth-Flow erfordert Login
   skip_before_action :authenticate_user!, only: [:callback]
@@ -8,7 +10,17 @@ class ThreadsAuthController < ApplicationController
     session[:threads_oauth_state] = state
     scope = %w[threads_basic threads_content_publish].join(",")
     oauth_base = ENV.fetch("THREADS_OAUTH_BASE", "https://www.threads.net")
-    url = "#{oauth_base}/oauth/authorize?client_id=#{CGI.escape(app_id)}&redirect_uri=#{CGI.escape(redirect_uri)}&response_type=code&scope=#{CGI.escape(scope)}&state=#{state}"
+    # Safety: Some deployments mistakenly set threads.com which requires headers we can't send via browser
+    begin
+      ob = URI.parse(oauth_base)
+      if ob.host&.end_with?("threads.com")
+        oauth_base = "https://www.threads.net"
+      end
+    rescue
+      oauth_base = "https://www.threads.net"
+    end
+    # Sende sowohl client_id als auch app_id, da einige Threads-Frontends app_id erwarten
+    url = "#{oauth_base}/oauth/authorize?client_id=#{CGI.escape(app_id)}&app_id=#{CGI.escape(app_id)}&redirect_uri=#{CGI.escape(redirect_uri)}&response_type=code&scope=#{CGI.escape(scope)}&state=#{state}"
     redirect_to url, allow_other_host: true
   end
 
@@ -30,7 +42,7 @@ class ThreadsAuthController < ApplicationController
       redirect_uri: redirect_uri,
       code: code,
       grant_type: "authorization_code"
-    })
+    }, { "X-IG-App-ID" => app_id })
     unless token_resp.success?
       return redirect_to new_post_path, alert: "Threads Tokenfehler: #{token_resp.status}"
     end
@@ -42,7 +54,7 @@ class ThreadsAuthController < ApplicationController
       grant_type: "th_exchange_token",
       client_secret: app_secret,
       access_token: short_token
-    })
+    }, { "X-IG-App-ID" => app_id })
 
     access_token = nil
     expires_in = nil
@@ -55,7 +67,7 @@ class ThreadsAuthController < ApplicationController
       refresh_resp = Faraday.get("#{graph_base}/refresh_access_token", {
         grant_type: "th_refresh_token",
         access_token: short_token
-      })
+      }, { "X-IG-App-ID" => app_id })
       if refresh_resp.success?
         refresh_json = JSON.parse(refresh_resp.body) rescue {}
         access_token = refresh_json["access_token"]
@@ -71,7 +83,7 @@ class ThreadsAuthController < ApplicationController
       refresh_resp2 = Faraday.get("#{graph_base}/refresh_access_token", {
         grant_type: "th_refresh_token",
         access_token: access_token
-      })
+      }, { "X-IG-App-ID" => app_id })
       if refresh_resp2.success?
         rj = JSON.parse(refresh_resp2.body) rescue {}
         access_token = rj["access_token"] || access_token
@@ -79,7 +91,7 @@ class ThreadsAuthController < ApplicationController
       end
     end
 
-    me_resp = Faraday.get("#{graph_base}/v1.0/me", { access_token: access_token })
+    me_resp = Faraday.get("#{graph_base}/v1.0/me", { access_token: access_token }, { "X-IG-App-ID" => app_id })
     unless me_resp.success?
       return redirect_to new_post_path, alert: "Threads /me Fehler: #{me_resp.status}"
     end
