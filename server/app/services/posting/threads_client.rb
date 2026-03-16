@@ -123,10 +123,17 @@ module Posting
       # Refresh 1 day before expiry if known
       # Refresh 3 Tage vor Ablauf (Long-lived sollten ~60 Tage halten)
       if exp && Time.now > (exp - 3.days)
-        refresh = Faraday.get("#{GRAPH_BASE}/refresh_access_token", {
-          grant_type: "th_refresh_token",
-          access_token: token
-        })
+        app_id = ENV.fetch("THREADS_APP_ID")
+        refresh = Faraday.get(
+          "#{GRAPH_BASE}/refresh_access_token",
+          {
+            grant_type: "th_refresh_token",
+            access_token: token
+          },
+          {
+            "X-IG-App-ID" => app_id
+          }
+        )
         if refresh.success?
           body = (JSON.parse(refresh.body) rescue {})
           new_token = body["access_token"]
