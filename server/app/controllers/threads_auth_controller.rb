@@ -1,7 +1,7 @@
 require "uri"
 
 class ThreadsAuthController < ApplicationController
-  # Callback darf ohne Login laufen, Start der OAuth-Flow erfordert Login
+  # The callback can run without logging in; starting the OAuth flow requires logging in
   skip_before_action :authenticate_user!, only: [:callback]
   def new
     app_id = ENV.fetch("THREADS_APP_ID")
@@ -19,7 +19,7 @@ class ThreadsAuthController < ApplicationController
     rescue
       oauth_base = "https://www.threads.net"
     end
-    # Sende sowohl client_id als auch app_id, da einige Threads-Frontends app_id erwarten
+    # Send both client_id and app_id, as some Threads frontends expect app_id
     url = "#{oauth_base}/oauth/authorize?client_id=#{CGI.escape(app_id)}&app_id=#{CGI.escape(app_id)}&redirect_uri=#{CGI.escape(redirect_uri)}&response_type=code&scope=#{CGI.escape(scope)}&state=#{state}"
     redirect_to url, allow_other_host: true
   end

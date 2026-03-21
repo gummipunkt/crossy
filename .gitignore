@@ -41,3 +41,4 @@
 .env.production.bak
 docker-compose.prod.yml
 docker-compose.yml
+/env/.env.production

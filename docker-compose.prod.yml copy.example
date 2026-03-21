@@ -1,0 +1,114 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: crossy
+      POSTGRES_PASSWORD: crossy
+      POSTGRES_DB: server_production
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crossy -d server_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - bundle-data:/usr/local/bundle
+      - storage:/app/server/storage
+    working_dir: /app/server
+    env_file:
+      - env/.env.production
+    environment:
+      RAILS_ENV: production
+      RACK_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+      RAILS_FORCE_SSL: ${RAILS_FORCE_SSL:-true}
+      RAILS_SERVE_STATIC_FILES: "true"
+
+      DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production
+      CACHE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_cache
+      QUEUE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_queue
+      CABLE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_cable
+      DB_POOL: ${DB_POOL:-5}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
+      DB_REAPING_FREQUENCY: ${DB_REAPING_FREQUENCY:-10}
+      DB_PREPARED_STATEMENTS: ${DB_PREPARED_STATEMENTS:-true}
+      THREADS_GRAPH_BASE: ${THREADS_GRAPH_BASE:-https://graph.threads.net}
+      THREADS_OAUTH_BASE: ${THREADS_OAUTH_BASE:-https://www.threads.net}
+      BLUESKY_BASE: ${BLUESKY_BASE:-https://bsky.social}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://crossy.example.tld}
+      ACTION_DISPATCH_TRUSTED_PROXIES: ${ACTION_DISPATCH_TRUSTED_PROXIES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1}
+    ports:
+      - "3022:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    command: >-
+      bash -lc "bundle install --jobs 4 && rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile && bin/rails server -e production -b 0.0.0.0 -p 3000"
+
+  worker:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    volumes:
+      - ./:/app
+      - bundle-data:/usr/local/bundle
+    working_dir: /app/server
+    env_file:
+      - env/.env.production
+    environment:
+      RAILS_ENV: production
+      RACK_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production
+      CACHE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_cache
+      QUEUE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_queue
+      CABLE_DATABASE_URL: postgresql://crossy:crossy@db:5432/server_production_cable
+      DB_POOL: ${DB_POOL:-5}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
+      DB_REAPING_FREQUENCY: ${DB_REAPING_FREQUENCY:-10}
+      DB_PREPARED_STATEMENTS: ${DB_PREPARED_STATEMENTS:-true}
+      THREADS_GRAPH_BASE: ${THREADS_GRAPH_BASE:-https://graph.threads.net}
+      THREADS_OAUTH_BASE: ${THREADS_OAUTH_BASE:-https://www.threads.net}
+      BLUESKY_BASE: ${BLUESKY_BASE:-https://bsky.social}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://crossy.example.tld}
+    command: >-
+      bash -lc "bundle install --jobs 4 && bin/rails db:prepare && bin/rails solid_queue:start"
+
+volumes:
+  db-data:
+  redis-data:
+  bundle-data:
+  storage:
+
+

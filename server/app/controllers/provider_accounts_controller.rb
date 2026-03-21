@@ -15,13 +15,13 @@ class ProviderAccountsController < ApplicationController
       instance = params.require(:instance).to_s.strip
       token = params.require(:access_token).to_s.strip
 
-      # Normalisiere Instanz ähnlich zum Model-Callback
+      # Normalize instance similar to the model callback
       unless instance.start_with?("http://", "https://")
         instance = "https://#{instance}"
       end
       instance = instance.sub(%r{/+$}, "")
 
-      # Validiere Token gegen Instanz
+      # Validate token against instance
       conn = Faraday.new(url: instance) { |f| f.adapter Faraday.default_adapter }
       verify = conn.get("/api/v1/accounts/verify_credentials") do |r|
         r.headers["Authorization"] = "Bearer #{token}"
@@ -31,7 +31,7 @@ class ProviderAccountsController < ApplicationController
         raise "Mastodon-Token ungültig (#{verify.status}): #{verify.body}"
       end
 
-      # Versuche Scopes zu ermitteln und auf write:statuses zu prüfen
+      # Try to identify scopes and check them against `write:statuses`
       scopes_string = nil
       begin
         info = conn.get("/oauth/token/info") do |r|
@@ -48,8 +48,8 @@ class ProviderAccountsController < ApplicationController
           end
         end
       rescue => _e
-        # Einige Server haben kein /oauth/token/info – in dem Fall fahren wir fort,
-        # aber speichern keine Scopes.
+        # Some servers do not have a /oauth/token/info endpoint—in that case, we proceed,
+        # but do not save any scopes.
         scopes_string ||= nil
       end
 
