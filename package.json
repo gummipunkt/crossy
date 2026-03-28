@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "EUPL-1.2",
   "type": "commonjs",
   "dependencies": {
     "nostr-tools": "^2.17.0"

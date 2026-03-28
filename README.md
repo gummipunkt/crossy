@@ -1,21 +1,20 @@
 # Crossy
 
-![Crossy logo](https://github.com/gummipunkt/crossy/blob/main/server/app/assets/images/crossy_logo.svg)
+![Crossy logo](server/app/assets/images/crossy_logo.svg)
 
-A small Rails app that helps you post to multiple social networks at once. It started as a single‑user tool and is being built so it can grow into a multi‑user SaaS later.
+A small Rails app that helps you post to multiple social networks at once. It started as a single-user tool and is being built so it can grow into a multi-user SaaS later.
 
-Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wiring is there; server‑side signing will follow).
+**Networks:** Mastodon, Bluesky, Threads, and **Nostr** (compose/sign/publish via **NIP-07** in the browser; relays are configured in code).
 
 ## What it does
 
-- A clean composer with file uploads and alt text
-- Pick the networks you want (there’s a “Select all” button)
-- Background deliveries with per‑provider status
-- A unified timeline across your connected accounts (auto‑refresh, like/repost)
-- Encrypted token storage (Lockbox + BlindIndex)
-- Sign up and sign in (Devise)
-- Multi-User mode
-- Admin area to manage users (promote to admin, delete users)
+- Composer with file uploads and alt text
+- Pick the networks you want (including “Select all”)
+- Background deliveries with per-provider status
+- Unified timeline across connected accounts (auto-refresh, like/repost)
+- Encrypted token storage (Lockbox + Blind Index)
+- Sign up / sign in (Devise)
+- Multi-user mode with an admin area (promote admins, manage users)
 
 ## Screenshots
 
@@ -30,234 +29,129 @@ Today it supports Mastodon, Bluesky and Threads. Nostr is on the way (the UI wir
 ## Tech
 
 - Ruby 3.3, Rails 8
-- PostgreSQL and Redis
-- Solid Queue for background jobs
+- PostgreSQL (app plus separate DBs for Solid Cache, Solid Queue, Solid Cable in the default Docker setup)
+- Redis (included in Docker Compose; optional depending on how you wire features)
+- Solid Queue for background jobs (database-backed in the default configuration)
 - Tailwind CSS, esbuild, Hotwire (Turbo, Stimulus)
 - Faraday for HTTP calls
-- Security: Devise, Rack::Attack, Secure Headers, Lockbox, BlindIndex
-- Everything runs in Docker
+- Security: Devise, Rack::Attack, Secure Headers, Lockbox, Blind Index, SSRF checks on user-supplied instance URLs
 
-## Development (Docker)
+## Run with Docker Compose
 
-Requirements: Docker and Docker Compose.
+The repo ships one compose file: [`docker-compose.yml`](docker-compose.yml). It runs Rails in **production** mode with a source bind mount (good for local iteration), bundled **web** and **worker** services, Postgres, and Redis.
 
-1) Boot the stack
+**Requirements:** Docker and Docker Compose.
+
+### 1. Clone and configure
 
 ```bash
-git clone https://github.com/yourname/crossy.git
+git clone https://github.com/gummipunkt/crossy.git
 cd crossy
+cp env/.env.production.example env/.env.production
+# Edit env/.env.production: SECRET_KEY_BASE, LOCKBOX_MASTER_KEY, BLIND_INDEX_MASTER_KEY,
+# PUBLIC_BASE_URL, SMTP, Threads keys, etc.
+```
+
+Use a strong `POSTGRES_PASSWORD` (and matching credentials in `DATABASE_URL` if you override it). See comments at the top of `docker-compose.yml` for Redis password / deploy hygiene.
+
+### 2. Start the stack
+
+```bash
 docker compose up -d --build
 ```
 
-2) Set up the database
+The **web** container runs `db:prepare`, builds JS/CSS, precompiles assets, then starts Puma on port **3000** inside the container.
 
-```bash
-docker compose exec -w /app/server web bash -lc "bin/rails db:create db:migrate"
-```
+### 3. Open the app
 
-3) Build frontend assets (first run)
-
-```bash
-docker compose exec -w /app/server web bash -lc "bin/rails javascript:install:esbuild || true; bin/rails css:install:tailwind || true; npm install; bin/rails javascript:build && bin/rails css:build"
-```
-
-4) Open the app
-
-- http://localhost:3000
-- Composer is the start page
-- Unified timeline: `/timeline`
-- Your own posts: `/my`
+- **From your machine:** [http://localhost:3022](http://localhost:3022) (host port **3022** is mapped to container port 3000)
+- Health check: `GET /up`
+- Root / composer: `/`
+- Timeline: `/timeline`
+- Your posts: `/my`
 - Provider accounts: `/provider_accounts`
 
-## Production (Docker)
+### First-time / manual asset build (if needed)
 
-Use the dedicated production compose file. Provide your secrets in `env/.env.production`.
-
-1) Create `env/.env.production`
-
-Minimal example:
-
-```env
-# Rails
-RAILS_ENV=production
-RACK_ENV=production
-SECRET_KEY_BASE=<64+ char random secret>
-
-# Base URL 
-PUBLIC_BASE_URL=https://your-domain.example
-
-# Logging/Proxy
-RAILS_LOG_LEVEL=info
-RAILS_LOG_TO_STDOUT=true
-RAILS_FORCE_SSL=true
-ACTION_DISPATCH_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1
-
-# Database
-# Für Managed-Postgres: setze sslmode=require
-DATABASE_URL=postgres://user:pass@host:5432/dbname?sslmode=require
-# Optional: zusätzliche Verbindungen
-# CACHE_DATABASE_URL=...
-# QUEUE_DATABASE_URL=...
-# CABLE_DATABASE_URL=...
-# DB_POOL=5
-# DB_SSLMODE=require
-# DB_CONNECT_TIMEOUT=5
-# DB_REAPING_FREQUENCY=10
-# DB_PREPARED_STATEMENTS=true
-
-# Secrets für Verschlüsselung
-# LOCKBOX_MASTER_KEY: 64 Hex-Zeichen (z. B. mit `ruby -e 'require "securerandom"; puts SecureRandom.hex(32)'`)
-LOCKBOX_MASTER_KEY=<64hex>
-# BLIND_INDEX_MASTER_KEY: exakt 64 Hex-Zeichen (immer in Anführungszeichen lassen)
-BLIND_INDEX_MASTER_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-# SMTP (Passwort-Reset)
-SMTP_ADDRESS=smtp.your-domain.example
-SMTP_PORT=587
-SMTP_DOMAIN=your-domain.example
-SMTP_USERNAME=your-user
-SMTP_PASSWORD=your-pass
-SMTP_AUTH=login
-SMTP_STARTTLS=true
-
-# Provider
-# Threads: verwende die Domain threads.net (nicht threads.com)
-THREADS_APP_ID=...
-THREADS_APP_SECRET=...
-THREADS_CLIENT_TOKEN=...
-THREADS_GRAPH_BASE=https://graph.threads.net
-THREADS_OAUTH_BASE=https://www.threads.net
-
-# Bluesky
-BLUESKY_BASE=https://bsky.social
-```
-
-2) Boot production
+If assets are missing:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose exec -w /app/server web bash -lc "bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile"
 ```
 
-3) Logs
+### Database migrations (if you run commands yourself)
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f web
+docker compose exec -w /app/server web bash -lc "bin/rails db:migrate"
 ```
-
-Notes:
-- The production compose includes a local Postgres service for convenience. For managed Postgres, set `DATABASE_URL` and remove/ignore the `db` service.
-- It runs `db:prepare`, builds JS/CSS, and precompiles assets on startup. Healthcheck probes `GET /up`.
-- Default publish is `3022:3000`. Put a reverse proxy (Caddy/Nginx) in front or change the port mapping.
-- Persistent volumes store gems and uploads: `bundle-data`, `storage`.
 
 ## Configuration
 
-Environment variables can be provided either via `docker-compose.yml`/`docker-compose.prod.yml` or an env file. Recommended:
+Environment variables are loaded from **`env/.env.production`** (see [`env/.env.production.example`](env/.env.production.example)). Additional examples live in [`.env.production.example`](.env.production.example) and [`.env.development.example`](.env.development.example).
 
-- Development: use `docker compose` as shown above; defaults are set in `docker-compose.yml`. Optional: `.env` (see `.env.example`).
-- Production: use `docker-compose.prod.yml` with `env/.env.production` (see `env/.env.production.example`).
+**Important**
 
-Set these variables:
+- **`PUBLIC_BASE_URL`** — OAuth redirects, mailer links, host authorization (with `localhost` / `127.0.0.1` allowed for internal checks where configured).
+- **Threads** — Whitelist redirect URI: `https://<your-domain>/auth/threads/callback`. Use **threads.net** OAuth/Graph URLs, not **threads.com**.
+- **Lockbox / Blind Index** — `LOCKBOX_MASTER_KEY`, `BLIND_INDEX_MASTER_KEY` (64 hex chars for blind index; keep quoted in env files).
 
-- Lockbox / BlindIndex
-  - `LOCKBOX_MASTER_KEY`
-  - `BLIND_INDEX_MASTER_KEY` (64 hex chars). Quote it in YAML: "abcdef..."
-- Threads API
-  - `THREADS_APP_ID`
-  - `THREADS_APP_SECRET`
-  - `THREADS_CLIENT_TOKEN`
-  - `PUBLIC_BASE_URL` (used for OAuth redirects, mailer links, public asset URLs)
-  - `THREADS_GRAPH_BASE` (optional; defaults to `https://graph.threads.net`)
-  - `THREADS_OAUTH_BASE` (optional; defaults to `https://www.threads.net`)
+**SMTP (password reset):** `MAILER_SENDER`, `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS`, optional `SMTP_OPENSSL_VERIFY_MODE`.
 
-Threads prerequisites
-- In deiner Threads-/Meta‑App die Redirect‑URI exakt whitelisten: `https://<your-domain>/auth/threads/callback`
-- App‑ID und Secret in `env/.env.production` setzen
-- Bei Problemen sicherstellen, dass die OAuth‑URL auf `threads.net` zeigt (nicht `.com`)
+**Database:** `DATABASE_URL` required in production; optional `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, `CABLE_DATABASE_URL` (Compose sets separate DB URLs by default). Tuning: `DB_POOL`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, etc.
 
-- SMTP (password reset emails)
-  - `MAILER_SENDER`
-  - `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`
-  - `SMTP_AUTH` (login/plain), `SMTP_STARTTLS` (true/false), `SMTP_OPENSSL_VERIFY_MODE` (optional)
+**Bluesky:** optional `BLUESKY_BASE` (default `https://bsky.social`). Connect via **Provider accounts** in the UI (handle + app password).
 
-- Database
-  - `DATABASE_URL` (required in production)
-  - `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, `CABLE_DATABASE_URL` (optional; fall back to `DATABASE_URL`)
-  - `DB_POOL`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, `DB_REAPING_FREQUENCY`, `DB_PREPARED_STATEMENTS` (optional tuning)
-
-- Bluesky
-  - `BLUESKY_BASE` (optional; defaults to `https://bsky.social`)
-
-Examples: see `env/.env.production.example` and `.env.example`.
-
-If you change env, recreate the containers:
+After changing env:
 
 ```bash
-docker compose down && docker compose up -d --force-recreate --build
+docker compose down && docker compose up -d --force-recreate
 ```
+
+## Local development without Docker (optional)
+
+If you have Ruby/Node/Postgres locally:
+
+```bash
+cd server
+bundle install
+bin/rails db:prepare
+bin/dev
+```
+
+Use `config/database.yml` and env vars as usual for development.
 
 ## Connecting providers
 
-Mastodon
-- Add your instance (full https URL) and a token under Provider Accounts
-- Token scopes should include `write:statuses` and `write:media`
+- **Mastodon** — Instance URL (https) + access token; scopes should include `write:statuses` (and media if you upload).
+- **Bluesky** — Handle + app password under Provider accounts.
+- **Threads** — “Connect Threads” → `/auth/threads`.
+- **Nostr** — Add a Nostr provider account; on the post page use prepare / sign / publish with a **NIP-07** extension.
 
-Bluesky
-- Add your handle under Provider Accounts
-- Create an app password in Bluesky
-- Save the refresh token once:
+## CI
 
-```bash
-docker compose exec -w /app/server web bash -lc "bin/rails runner 'pa=ProviderAccount.where(provider: \"bluesky\").first; Posting::BlueskyClient.new(pa).login!(ENV.fetch(\"BSKY_APP_PASSWORD\"))'"
-```
-
-Threads
-- Use “Connect Threads” (`/auth/threads`) to store a long‑lived token
-
-Nostr (preview)
-- Buttons on the post page let you prepare/sign/publish with a NIP‑07 browser extension
-
-## Using it
-
-- Write your post, attach media, add alt text (one per line)
-- Select networks (or click “Select all”)
-- Submit and watch delivery status per provider
-- Use `/timeline` to see all connected feeds in one place; like/repost from there
+GitHub Actions (`.github/workflows/ci.yml`) runs Brakeman, bundler-audit, RuboCop, and tests from the **`server/`** directory.
 
 ## Troubleshooting
 
-Assets fail to build
-- If you see `esbuild: not found`, run the install/build step from Quick start
-- Do a hard reload in the browser after building
-
-Images don’t render
-- Make sure your CSP allows remote images. This app configures Secure Headers to permit `https:`/`http:` for `img_src`.
-
-Threads token expired (code 190)
-- Reconnect at `/auth/threads`, then reload `/timeline`
-
-Mastodon media upload fails
-- Check scopes and that your instance URL starts with `https://`
-
-Gems get reinstalled every boot
-- Keep the bundle volume enabled in `docker-compose.yml`
+- **Assets / esbuild** — Run the asset build commands above inside the `web` container; hard-reload the browser.
+- **Images blocked** — CSP is configured in Secure Headers; remote timeline images use broad `img_src` for provider CDNs.
+- **Threads token (e.g. 190)** — Reconnect via `/auth/threads`.
+- **Mastodon uploads** — Check token scopes and that the instance URL uses `https://`.
+- **Gems reinstalling every boot** — Normal if the container is recreated without a persistent bundle volume; Compose uses a `bundle-data` volume to cache gems between restarts.
 
 ## Security notes
 
-- Secrets stay in env
-- Access/refresh tokens are encrypted at rest
-- Basic rate limiting and sensible headers are enabled
+- Keep secrets in environment or a secrets manager, not in git.
+- Access tokens are encrypted at rest (Lockbox).
+- Rate limiting (Rack::Attack) and security headers are enabled; user-supplied federation URLs are validated before server-side HTTP requests.
 
-## Roadmap
+## Roadmap (ideas)
 
-- Nostr server‑side session signing
-- Provider webhooks/streaming
-- Better media support (video, carousels)
-- Threads support for timeline
-- User Profile Management Page
+- Richer Nostr relay configuration (UI / per account)
+- Provider webhooks / streaming
+- Better media (video, carousels)
+- Profile management
 
 ## License
 
-Licensed under EUPL v1.2. See the official text: https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
-
-
+Licensed under **EUPL-1.2**. Official text: [EUPL-1.2](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
