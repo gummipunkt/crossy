@@ -25,7 +25,7 @@ module Api
 
         current_user.posts.find(post_id)
 
-        event = params.require(:event).permit!.to_h
+        event = permitted_signed_nostr_event
         Posting::NostrClient.new(pa).publish_signed_event!(event)
         Delivery.where(post_id: post_id, provider_account: pa).update_all(status: "succeeded", provider_post_id: event["id"])
         render json: { ok: true }
@@ -36,6 +36,30 @@ module Api
           Delivery.where(post_id: post_id, provider_account: pa).update_all(status: "failed", error_message: e.message) rescue nil
         end
         render json: { ok: false, error: e.message }, status: :unprocessable_entity
+      end
+
+      private
+
+      # NIP-01 signed event fields only; tags are arrays of string arrays (bounded).
+      def permitted_signed_nostr_event
+        e = params.require(:event)
+        base = e.permit(:id, :pubkey, :created_at, :kind, :content, :sig).to_h
+        tags = normalize_nostr_tags(e[:tags] || e["tags"])
+        base.stringify_keys.merge("tags" => tags)
+      end
+
+      def normalize_nostr_tags(raw)
+        return [] if raw.nil?
+
+        raise ActionController::BadRequest, "tags must be an array" unless raw.is_a?(Array)
+        raise ActionController::BadRequest, "too many tags" if raw.size > 32
+
+        raw.map do |row|
+          raise ActionController::BadRequest, "tag row must be an array" unless row.is_a?(Array)
+          raise ActionController::BadRequest, "tag row too long" if row.size > 16
+
+          row.map { |v| v.to_s }
+        end
       end
     end
   end
