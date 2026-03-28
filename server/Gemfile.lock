@@ -422,7 +422,7 @@ DEPENDENCIES
   puma (>= 5.0)
   rack (>= 3.2.5)
   rack-attack
-  rails (~> 8.0.4, >= 8.0.4.1)
+  rails (~> 8.0.4)
   rotp
   rubocop-rails-omakase
   secure_headers
