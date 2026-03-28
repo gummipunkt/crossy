@@ -3,7 +3,7 @@ class PostsController < ApplicationController
     @post = Post.new
     # Only current user's channels; hide duplicates (same provider/handle/instance)
     scope = ProviderAccount.where(user_id: current_user.id)
-    @provider_accounts = scope.order(:provider, :handle).to_a.uniq { |pa| [pa.provider, pa.handle, pa.instance.to_s] }
+    @provider_accounts = scope.order(:provider, :handle).to_a.uniq { |pa| [ pa.provider, pa.handle, pa.instance.to_s ] }
   end
 
   def create
@@ -16,7 +16,7 @@ class PostsController < ApplicationController
         next unless uploaded.respond_to?(:original_filename)
         ma = @post.media_attachments.create!(
           filename: uploaded.original_filename,
-          content_type: uploaded.content_type || 'application/octet-stream',
+          content_type: uploaded.content_type || "application/octet-stream",
           byte_size: uploaded.size,
           metadata: { alt: alts[idx].to_s }
         )
@@ -52,5 +52,3 @@ class PostsController < ApplicationController
     params.require(:post).permit(:content_text, :content_warning)
   end
 end
-
-

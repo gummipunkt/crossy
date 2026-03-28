@@ -1,9 +1,9 @@
 class Admin::UsersController < Admin::BaseController
   def index
     @users = User.left_joins(:provider_accounts)
-                 .select('users.*, COUNT(provider_accounts.id) AS networks_count')
-                 .group('users.id')
-                 .order('users.created_at DESC')
+                 .select("users.*, COUNT(provider_accounts.id) AS networks_count")
+                 .group("users.id")
+                 .order("users.created_at DESC")
   end
 
   def show
@@ -46,5 +46,3 @@ class Admin::UsersController < Admin::BaseController
     params.require(:user).permit(:email, :password, :password_confirmation)
   end
 end
-
-

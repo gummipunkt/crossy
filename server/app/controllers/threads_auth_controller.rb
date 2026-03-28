@@ -2,7 +2,7 @@ require "uri"
 
 class ThreadsAuthController < ApplicationController
   # The callback can run without logging in; starting the OAuth flow requires logging in
-  skip_before_action :authenticate_user!, only: [:callback]
+  skip_before_action :authenticate_user!, only: [ :callback ]
   def new
     app_id = ENV.fetch("THREADS_APP_ID")
     redirect_uri = callback_url
@@ -118,5 +118,3 @@ class ThreadsAuthController < ApplicationController
     URI.join(base, "/auth/threads/callback").to_s
   end
 end
-
-
