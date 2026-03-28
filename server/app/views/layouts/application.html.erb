@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <title>Crossy <%= content_for(:title) %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -9,8 +9,9 @@
 
     <%= yield :head %>
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&display=swap" rel="stylesheet">
 
     <link rel="apple-touch-icon" sizes="180x180" href="<%= asset_path 'favicon/apple-touch-icon.png' %>">
     <link rel="icon" type="image/png" sizes="32x32" href="<%= asset_path 'favicon/favicon-32x32.png' %>">
@@ -18,60 +19,62 @@
     <link rel="icon" href="<%= asset_path 'favicon/favicon.ico' %>" type="image/x-icon">
     <link rel="manifest" href="<%= asset_path 'favicon/site.webmanifest' %>">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
   </head>
 
-  <body class="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-    <header class="border-b bg-white">
+  <body class="min-h-screen flex flex-col antialiased bg-gradient-to-br from-violet-50 via-purple-50/40 to-pink-50/50 text-stone-800 font-sans">
+    <header class="sticky top-0 z-20 border-b border-violet-100/90 bg-white/70 shadow-sm shadow-violet-200/20 backdrop-blur-md motion-safe:animate-[crossy-fade_0.4s_ease-out_both]">
       <div class="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <%= link_to root_path, class: "inline-block" do %>
-            <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-8 w-8" %>
+        <div class="flex items-center gap-3 min-w-0">
+          <%= link_to root_path, class: "crossy-logo-badge" do %>
+            <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-7 w-7 sm:h-8 sm:w-8" %>
           <% end %>
-          <h1 class="text-lg font-semibold"><%= content_for(:title) || "Crossy" %></h1>
+          <div class="min-w-0">
+            <p class="font-display text-lg sm:text-xl font-semibold tracking-tight text-stone-900 truncate"><%= content_for(:title) || "Crossy" %></p>
+            <p class="text-[11px] sm:text-xs text-violet-600/80 font-medium tracking-wide uppercase">Multi-network posts</p>
+          </div>
         </div>
-        <nav class="text-sm flex flex-wrap items-center gap-3 sm:gap-4">
+        <nav class="text-sm flex flex-wrap items-center gap-1.5 sm:gap-2">
           <% if user_signed_in? %>
-            <%= link_to "Composer", new_post_path, class: "text-blue-600 hover:underline" %>
-            <%= link_to "Timeline", "/timeline", class: "text-blue-600 hover:underline" %>
-            <%= link_to "My Posts", "/my", class: "text-blue-600 hover:underline" %>
-            <%= link_to "Networks", provider_accounts_path, class: "text-blue-600 hover:underline" %>
+            <%= link_to "Composer", root_path, class: nav_pill_class(composer_nav_active?) %>
+            <%= link_to "Timeline", "/timeline", class: nav_pill_class(timeline_nav_active?) %>
+            <%= link_to "My Posts", "/my", class: nav_pill_class(my_posts_nav_active?) %>
+            <%= link_to "Networks", provider_accounts_path, class: nav_pill_class(networks_nav_active?) %>
             <% if current_user&.admin? %>
-              <%= link_to "Admin", admin_users_path, class: "text-blue-600 hover:underline" %>
+              <%= link_to "Admin", admin_users_path, class: nav_pill_class(admin_nav_active?) %>
             <% end %>
-            <span class="text-gray-400 hidden sm:inline">|</span>
-            <span class="text-xs text-gray-600 hidden sm:inline"><%= current_user.email %></span>
-            <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "text-sm text-gray-700 hover:underline" %>
+            <span class="text-stone-300 hidden sm:inline px-0.5">|</span>
+            <span class="text-xs text-stone-500 max-w-[10rem] truncate hidden sm:inline" title="<%= current_user.email %>"><%= current_user.email %></span>
+            <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "text-sm text-stone-500 hover:text-stone-800 px-2 py-1 rounded-lg hover:bg-stone-100/80 transition-colors" %>
           <% else %>
-            <%= link_to "Login", new_user_session_path, class: "text-blue-600 hover:underline" %>
-            <%= link_to "Sign up", new_user_registration_path, class: "text-blue-600 hover:underline" %>
+            <%= link_to "Login", new_user_session_path, class: nav_pill_class(current_page?(new_user_session_path)) %>
+            <%= link_to "Sign up", new_user_registration_path, class: nav_pill_class(current_page?(new_user_registration_path)) %>
           <% end %>
         </nav>
       </div>
     </header>
 
-    <main class="flex-1 max-w-3xl mx-auto px-4 py-6">
+    <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-6 sm:py-8 crossy-main-enter">
       <% if notice.present? %>
-        <div class="mb-4 rounded-md bg-green-50 text-green-900 px-4 py-3"><%= notice %></div>
+        <div class="mb-5 rounded-xl border border-lime-200/90 bg-lime-50/95 px-4 py-3 text-lime-950 shadow-sm border-l-4 border-l-lime-400 crossy-flash-notice" role="status"><%= notice %></div>
       <% end %>
       <% if alert.present? %>
-        <div class="mb-4 rounded-md bg-red-50 text-red-900 px-4 py-3"><%= alert %></div>
+        <div class="mb-5 rounded-xl border border-rose-200/90 bg-rose-50/95 px-4 py-3 text-rose-950 shadow-sm border-l-4 border-l-rose-400 crossy-flash-notice" role="alert"><%= alert %></div>
       <% end %>
 
       <%= yield %>
     </main>
-    <footer class="mt-auto border-t bg-white">
-      <div class="max-w-3xl mx-auto px-4 py-4 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div class="flex items-center gap-2">
-          <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-5 w-5" %>
+    <footer class="mt-auto border-t border-violet-100/80 bg-white/55 backdrop-blur-sm">
+      <div class="max-w-3xl mx-auto px-4 py-4 text-xs text-stone-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="flex items-center gap-2 font-medium text-stone-700">
+          <%= image_tag "crossy_logo.svg", alt: "Crossy", class: "h-5 w-5 opacity-90" %>
           <span>Crossy</span>
         </div>
-        <div class="space-x-3">
-          <a href="https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12" target="_blank" rel="noopener" class="hover:underline">License: EUPL v1.2</a>
-          <a href="https://github.com/gummipunkt/crossy" target="_blank" rel="noopener" class="hover:underline">GitHub</a>
-          <a href="https://www.gummipunkt.eu" target="_blank" rel="noopener" class="hover:underline">made by gummipunkt</a>
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <a href="https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12" target="_blank" rel="noopener" class="crossy-link">License: EUPL v1.2</a>
+          <a href="https://github.com/gummipunkt/crossy" target="_blank" rel="noopener" class="crossy-link">GitHub</a>
+          <a href="https://www.gummipunkt.eu" target="_blank" rel="noopener" class="crossy-link">made by gummipunkt</a>
         </div>
       </div>
     </footer>

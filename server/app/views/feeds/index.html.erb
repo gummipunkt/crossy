@@ -1,76 +1,81 @@
-<h1 class="text-xl font-semibold mb-4 flex items-center justify-between gap-3">
-  <span>Timeline</span>
-  <button onclick="location.reload()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-2 sm:px-3 hover:bg-gray-50 text-sm">Refresh</button>
-</h1>
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h1 class="crossy-page-title">Timeline</h1>
+    <p class="mt-1 text-sm text-stone-600">All connected feeds in one place · auto-refresh every 30s</p>
+  </div>
+  <button type="button" onclick="location.reload()" class="crossy-btn-secondary shrink-0 self-start sm:self-auto">Refresh</button>
+</div>
 
 <script>
-  // Auto-Refresh nur auf dieser Seite initialisieren
   window.__timelineInterval && clearInterval(window.__timelineInterval);
   window.__timelineInterval = setInterval(function(){ location.reload() }, 30000);
   document.addEventListener('turbo:before-render', function(){
-    // Beim Verlassen der Seite aufräumen
     window.__timelineInterval && clearInterval(window.__timelineInterval);
     window.__timelineInterval = null;
   });
-  </script>
-  <script>
-    async function feedAct(el){
-      try{
-        const payload = { provider: el.dataset.provider, id: el.dataset.id, action_type: el.dataset.actionType }
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.content
-        const resp = await fetch('/timeline/action', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrf || '',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        })
-        if(!resp.ok){ alert('Aktion fehlgeschlagen') } else { el.classList.add('opacity-60') }
-      }catch(e){ alert('Netzwerkfehler') }
-    }
-  </script>
+</script>
+<script>
+  async function feedAct(el){
+    try{
+      const payload = { provider: el.dataset.provider, id: el.dataset.id, action_type: el.dataset.actionType }
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+      const resp = await fetch('/timeline/action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf || '',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+      if(!resp.ok){ alert('Aktion fehlgeschlagen') } else { el.classList.add('opacity-60') }
+    }catch(e){ alert('Netzwerkfehler') }
+  }
+</script>
 
-<div class="space-y-4">
+<div class="space-y-5">
   <% @items.each do |it| %>
-    <div class="rounded-md border bg-white p-4 sm:p-5 shadow-sm">
-      <div class="text-sm text-gray-700 flex items-start sm:items-center justify-between gap-2">
+    <article class="crossy-card">
+      <div class="text-sm flex items-start sm:items-center justify-between gap-2 text-stone-600">
         <span class="inline-flex items-center gap-2 flex-wrap">
-          <span class="uppercase text-[11px] font-semibold px-2 py-1 rounded-full border
+          <span class="uppercase text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-full border
             <%= case it.provider
-                when 'mastodon' then 'border-green-300 text-green-700'
-                when 'bluesky' then 'border-sky-300 text-sky-700'
-                when 'threads' then 'border-purple-300 text-purple-700'
-                when 'nostr' then 'border-pink-300 text-pink-700'
-                else 'border-gray-300 text-gray-700' end %>">
+                when "mastodon" then "border-green-200/90 bg-green-100/80 text-green-900"
+                when "bluesky" then "border-sky-200/90 bg-sky-100/80 text-sky-900"
+                when "threads" then "border-amber-200/90 bg-amber-100/80 text-amber-900"
+                when "nostr" then "border-pink-200/90 bg-pink-100/80 text-pink-900"
+                else "border-violet-200/90 bg-violet-100/70 text-violet-900" end %>">
             <%= it.provider %>
           </span>
           <% if it.author.present? %>
-            <span class="text-sm font-medium break-all"><%= it.author %></span>
+            <span class="text-sm font-semibold text-stone-800 break-all"><%= it.author %></span>
           <% end %>
         </span>
-        <span class="text-xs shrink-0"><% if it.url.present? %><a href="<%= it.url %>" target="_blank" class="text-blue-600 hover:underline"><%= it.created_at&.in_time_zone&.strftime('%Y-%m-%d %H:%M') %></a><% else %><span class="text-gray-500"><%= it.created_at&.in_time_zone&.strftime('%Y-%m-%d %H:%M') %></span><% end %></span>
+        <span class="text-xs shrink-0 text-stone-500">
+          <% if it.url.present? %>
+            <a href="<%= it.url %>" target="_blank" rel="noopener" class="crossy-link"><%= it.created_at&.in_time_zone&.strftime("%Y-%m-%d %H:%M") %></a>
+          <% else %>
+            <%= it.created_at&.in_time_zone&.strftime("%Y-%m-%d %H:%M") %>
+          <% end %>
+        </span>
       </div>
-      <div class="mt-3 whitespace-pre-line text-[15px] break-words"><%= it.content %></div>
+      <div class="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-stone-800 break-words"><%= it.content %></div>
       <% if it.images.present? %>
-        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <% it.images.first(4).each do |im| %>
-            <div class="aspect-square overflow-hidden rounded-md border">
-              <img src="<%= im["url"] %>" alt="<%= im["alt"] %>" class="w-full h-full object-cover"/>
+            <div class="aspect-square overflow-hidden rounded-xl border border-stone-200 shadow-inner">
+              <img src="<%= im["url"] %>" alt="<%= im["alt"] %>" class="w-full h-full object-cover" loading="lazy"/>
             </div>
           <% end %>
         </div>
       <% end %>
-      <div class="mt-3 text-sm flex flex-wrap gap-3">
+      <div class="mt-4 flex flex-wrap gap-2 border-t border-stone-100 pt-4 text-sm">
         <% if it.url.present? %>
-          <a href="<%= it.url %>" target="_blank" class="text-blue-600 hover:underline">Öffnen</a>
+          <a href="<%= it.url %>" target="_blank" rel="noopener" class="crossy-btn-secondary text-xs py-1.5">Open</a>
         <% end %>
-        <button class="text-gray-700 hover:underline" data-provider="<%= it.provider %>" data-id="<%= it.id %>" data-action-type="like" onclick="feedAct(this)">Like</button>
-        <button class="text-gray-700 hover:underline" data-provider="<%= it.provider %>" data-id="<%= it.id %>" data-action-type="repost" onclick="feedAct(this)">Repost</button>
+        <button type="button" class="crossy-btn-secondary text-xs py-1.5" data-provider="<%= it.provider %>" data-id="<%= it.id %>" data-action-type="like" onclick="feedAct(this)">Like</button>
+        <button type="button" class="crossy-btn-secondary text-xs py-1.5" data-provider="<%= it.provider %>" data-id="<%= it.id %>" data-action-type="repost" onclick="feedAct(this)">Repost</button>
       </div>
-    </div>
+    </article>
   <% end %>
 </div>
-
-

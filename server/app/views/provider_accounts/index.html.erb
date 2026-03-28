@@ -1,59 +1,61 @@
-<h1 class="text-xl font-semibold mb-4">Networks</h1>
+<div class="mb-6">
+  <h1 class="crossy-page-title">Networks</h1>
+  <p class="mt-1 text-sm text-stone-600">Connect Mastodon, Bluesky, Threads, or Nostr — then pick them in the composer.</p>
+</div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
   <% @provider_accounts.each do |pa| %>
-    <div class="rounded-md border bg-white p-5 shadow-sm">
-      <div class="text-sm font-medium mb-1 uppercase"><%= pa.provider %></div>
-      <div class="text-sm break-all"><%= pa.handle %></div>
+    <div class="crossy-card">
+      <div class="text-xs font-bold uppercase tracking-wide text-stone-500 mb-1"><%= pa.provider %></div>
+      <div class="text-sm font-semibold text-stone-900 break-all"><%= pa.handle %></div>
       <% if (info = (pa.instance || pa.public_key)).present? %>
-        <div class="text-xs text-gray-600 mt-1 break-all"><%= info %></div>
+        <div class="text-xs text-stone-500 mt-2 break-all font-mono leading-relaxed"><%= info %></div>
       <% end %>
-      <div class="mt-3">
-        <%= button_to "Delete", provider_account_path(pa), method: :delete, data: { confirm: "Wirklich Delete?" }, class: "rounded-md bg-red-600 text-white px-3 py-1 hover:bg-red-700" %>
+      <div class="mt-4">
+        <%= button_to "Remove", provider_account_path(pa), method: :delete, data: { confirm: "Remove this network?" }, class: "rounded-lg bg-red-600 text-white text-sm font-medium px-3 py-2 hover:bg-red-700 transition-colors" %>
       </div>
     </div>
   <% end %>
 </div>
 
-<h2 class="text-lg font-medium mb-2">Connect new network</h2>
+<h2 class="font-display text-xl font-semibold text-stone-900 mb-3">Connect a network</h2>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="p-4 border rounded-md bg-white">
-    <h3 class="font-semibold mb-2">Mastodon</h3>
-    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-2" } do %>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+  <div class="crossy-card-muted">
+    <h3 class="font-display font-semibold text-stone-900 mb-3">Mastodon</h3>
+    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-3" } do %>
       <input type="hidden" name="provider" value="mastodon">
-      <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Handle">
-      <input class="w-full border rounded px-2 py-1" name="instance" placeholder="https://deine.instanz">
-      <input class="w-full border rounded px-2 py-1" name="access_token" placeholder="Access Token">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
+      <input class="crossy-input" name="handle" placeholder="@you or handle" autocomplete="off">
+      <input class="crossy-input" name="instance" placeholder="https://your.instance" autocomplete="off">
+      <input class="crossy-input" name="access_token" placeholder="Access token" autocomplete="off">
+      <button type="submit" class="crossy-btn-primary w-full sm:w-auto border-0">Connect</button>
     <% end %>
   </div>
 
-  <div class="p-4 border rounded-md bg-white">
-    <h3 class="font-semibold mb-2">Bluesky</h3>
-    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-2" } do %>
+  <div class="crossy-card-muted">
+    <h3 class="font-display font-semibold text-stone-900 mb-3">Bluesky</h3>
+    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-3" } do %>
       <input type="hidden" name="provider" value="bluesky">
-      <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Handle oder DID">
-      <input class="w-full border rounded px-2 py-1" name="instance" placeholder="https://pds.domain.tld (optional)">
-      <input class="w-full border rounded px-2 py-1" name="app_password" placeholder="App Password">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
+      <input class="crossy-input" name="handle" placeholder="Handle or DID" autocomplete="off">
+      <input class="crossy-input" name="instance" placeholder="PDS URL (optional)" autocomplete="off">
+      <input class="crossy-input" name="app_password" placeholder="App password" autocomplete="off">
+      <button type="submit" class="crossy-btn-primary w-full sm:w-auto border-0">Connect</button>
     <% end %>
   </div>
 
-  <div class="p-4 border rounded-md bg-white">
-    <h3 class="font-semibold mb-2">Threads</h3>
-    <%= link_to "Threads Connect", "/auth/threads", class: "inline-block rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700", data: { turbo: false } %>
+  <div class="crossy-card-muted">
+    <h3 class="font-display font-semibold text-stone-900 mb-3">Threads</h3>
+    <p class="text-sm text-stone-600 mb-3">OAuth with Meta — you will be redirected to Threads.</p>
+    <%= link_to "Connect Threads", "/auth/threads", class: "crossy-btn-primary", data: { turbo: false } %>
   </div>
 
-  <div class="p-4 border rounded-md bg-white">
-    <h3 class="font-semibold mb-2">Nostr</h3>
-    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-2" } do %>
+  <div class="crossy-card-muted">
+    <h3 class="font-display font-semibold text-stone-900 mb-3">Nostr</h3>
+    <%= form_with url: provider_accounts_path, method: :post, html: { class: "space-y-3" } do %>
       <input type="hidden" name="provider" value="nostr">
-      <input class="w-full border rounded px-2 py-1" name="handle" placeholder="Name">
-      <input class="w-full border rounded px-2 py-1" name="public_key" placeholder="Pubkey (hex)">
-      <button class="rounded-md bg-blue-600 text-white px-3 py-1 hover:bg-blue-700">Connect</button>
+      <input class="crossy-input" name="handle" placeholder="Display name" autocomplete="off">
+      <input class="crossy-input font-mono text-sm" name="public_key" placeholder="Public key (hex)" autocomplete="off">
+      <button type="submit" class="crossy-btn-primary w-full sm:w-auto border-0">Connect</button>
     <% end %>
   </div>
 </div>
-
-

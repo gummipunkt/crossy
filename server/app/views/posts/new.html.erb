@@ -1,48 +1,68 @@
-<h1 class="text-xl font-semibold mb-4">New Post</h1>
+<div class="mb-6">
+  <h1 class="crossy-page-title">Neuer Beitrag</h1>
+  <p class="mt-1 text-sm text-violet-900/70">Einmal schreiben, an alle gewählten Netze senden.</p>
+</div>
 
-<div class="rounded-md border bg-white p-5 shadow-sm">
-<%= form_with model: @post, url: posts_path, multipart: true, html: { class: "space-y-6" } do |f| %>
+<div class="crossy-card crossy-card-lift crossy-card-appear">
+<%= form_with model: @post, url: posts_path, multipart: true, html: { class: "space-y-6", id: "composer-form" } do |f| %>
   <div>
-    <%= f.label :content_text, "Text", class: "block text-sm font-medium mb-1" %>
-    <%= f.text_area :content_text, rows: 6, required: true, class: "w-full bg-white rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
+      <%= f.label :content_text, "Text", class: "crossy-label mb-0" %>
+      <span class="crossy-char-count text-right max-w-full" id="post_content_text_count_wrap" aria-live="polite">
+        <span id="post_content_text_count">0</span> Zeichen
+        <span class="text-violet-400/90 font-normal"> · Hinweis: viele Fediverse-Instanzen ~500 Zeichen</span>
+      </span>
+    </div>
+    <%= f.text_area :content_text, rows: 6, required: true,
+        class: "crossy-input min-h-[8rem]",
+        id: "post_content_text",
+        data: { warn_chars: 500, strong_warn_chars: 4500 } %>
   </div>
 
   <div>
-    <%= f.label :content_warning, "Content Warning (optional)", class: "block text-sm font-medium mb-1" %>
-    <%= f.text_field :content_warning, class: "w-full bg-white rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
+      <%= f.label :content_warning, "Inhaltswarnung (optional)", class: "crossy-label mb-0" %>
+      <span class="crossy-char-count text-right" id="post_content_warning_count_wrap" aria-live="polite">
+        <span id="post_content_warning_count">0</span> Zeichen
+      </span>
+    </div>
+    <%= f.text_field :content_warning, class: "crossy-input", placeholder: "z. B. Politik, Blitzlicht", id: "post_content_warning", data: { warn_chars: 200 } %>
   </div>
 
   <div>
-    <p class="text-sm font-medium mb-2">Networks</p>
-    <div class="mb-2">
-      <button type="button" id="select-all-providers" class="text-sm text-blue-600 hover:underline">Mark all</button>
-      <span class="mx-2 text-gray-300">|</span>
-      <button type="button" id="deselect-all-providers" class="text-sm text-blue-600 hover:underline">Unmark all</button>
+    <p class="crossy-label mb-2">Netzwerke</p>
+    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+      <button type="button" id="select-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Alle markieren</button>
+      <span class="text-violet-200">·</span>
+      <button type="button" id="deselect-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Alle abwählen</button>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
       <% @provider_accounts.each do |pa| %>
-        <label class="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 bg-white">
-          <input type="checkbox" name="provider_account_ids[]" value="<%= pa.id %>" class="rounded provider-checkbox" checked>
-          <span class="break-all"><span class="uppercase text-xs text-gray-500"><%= pa.provider %></span> – <%= pa.handle %></span>
+        <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 px-3 py-3 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50/50 has-[:checked]:border-violet-300 has-[:checked]:bg-violet-100/60 has-[:checked]:shadow-sm">
+          <input type="checkbox" name="provider_account_ids[]" value="<%= pa.id %>" class="h-4 w-4 rounded border-violet-200 text-violet-600 focus:ring-violet-400 provider-checkbox" checked>
+          <span class="break-all text-sm"><span class="mr-1 font-semibold uppercase tracking-wide text-xs text-violet-600/80"><%= pa.provider %></span><%= pa.handle %></span>
         </label>
       <% end %>
     </div>
   </div>
 
   <div>
-    <p class="text-sm font-medium mb-2">Media</p>
-    <input type="file" name="files[]" multiple class="block w-full text-sm text-gray-900 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
+      <p class="crossy-label mb-0">Medien</p>
+      <span class="crossy-char-count text-right" id="post_alts_count_wrap" aria-live="polite">
+        Alt-Texte: <span id="post_alts_count">0</span> Zeichen
+      </span>
+    </div>
+    <input type="file" name="files[]" multiple class="block w-full text-sm text-violet-900/80 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-violet-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-900 hover:file:bg-violet-200/80 file:transition-colors" />
   </div>
 
   <div>
-    <p class="text-sm font-medium mb-2">Alt Texts (optional, one per line)</p>
-    <textarea name="alts" rows="3" placeholder="Alt Texts, separated by lines" class="w-full rounded-md border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+    <p class="crossy-label mb-2">Alt-Texte (optional, eine Zeile pro Bild)</p>
+    <textarea name="alts" rows="3" placeholder="Bilder für Screenreader beschreiben…" class="crossy-input" id="post_alts"></textarea>
   </div>
 
-  <div>
-    <%= f.submit "Publish", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" %>
+  <div class="pt-1">
+    <%= f.submit "Veröffentlichen", class: "crossy-btn-primary" %>
   </div>
 <% end %>
 </div>
-
-

@@ -1,20 +1,18 @@
-<div class="max-w-md mx-auto mt-10">
-  <div class="rounded-md border bg-white p-6 shadow-sm">
-    <h1 class="text-xl font-semibold mb-1">Reset password</h1>
-    <p class="text-sm text-gray-600 mb-6">We'll email you a reset link</p>
+<div class="max-w-md mx-auto mt-6 sm:mt-10">
+  <div class="crossy-card">
+    <h1 class="font-display text-2xl font-semibold text-stone-900 mb-1">Reset password</h1>
+    <p class="text-sm text-stone-600 mb-6">We will email you a link to choose a new password.</p>
 
     <%= form_for(resource, as: resource_name, url: password_path(resource_name)) do |f| %>
-      <div class="mb-4">
-        <%= f.label :email, class: "block text-sm font-medium mb-1" %>
-        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <div class="mb-5">
+        <%= f.label :email, class: "crossy-label" %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "crossy-input" %>
       </div>
 
-      <div class="flex items-center justify-between">
-        <%= f.submit "Send reset link", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" %>
-        <%= link_to "Back to sign in", new_session_path(resource_name), class: "text-sm text-blue-600 hover:underline" %>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <%= f.submit "Send reset link", class: "crossy-btn-primary border-0 cursor-pointer" %>
+        <%= link_to "Back to sign in", new_session_path(resource_name), class: "crossy-link text-sm" %>
       </div>
     <% end %>
   </div>
 </div>
-
-

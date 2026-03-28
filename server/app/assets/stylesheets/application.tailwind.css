@@ -1,1 +1,120 @@
 @import "tailwindcss";
+
+@source "../views/**/*.html.erb";
+
+/* Page / card entrance — respects prefers-reduced-motion via motion-safe in classes */
+@keyframes crossy-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes crossy-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+}
+
+@layer components {
+  .crossy-page-title {
+    @apply font-display text-2xl sm:text-3xl font-semibold tracking-tight text-stone-900 motion-safe:animate-[crossy-enter_0.45s_cubic-bezier(0.22,1,0.36,1)_both];
+  }
+
+  .crossy-card {
+    @apply rounded-2xl border border-purple-100/90 bg-white/85 p-5 shadow-md shadow-violet-200/30 backdrop-blur-sm sm:p-6
+      transition-[box-shadow,transform,border-color] duration-300 ease-out
+      hover:border-violet-200/90 hover:shadow-lg hover:shadow-violet-200/35;
+  }
+
+  /* Einmaliges Einblenden (z. B. Composer-Formular) */
+  .crossy-card-appear {
+    @apply motion-safe:animate-[crossy-enter_0.55s_cubic-bezier(0.22,1,0.36,1)_both];
+  }
+
+  /* Hover-Lift für wenige Karten (nicht auf sehr langen Listen) */
+  .crossy-card-lift {
+    @apply hover:shadow-lg hover:shadow-violet-200/30 hover:-translate-y-0.5;
+  }
+
+  .crossy-card-muted {
+    @apply rounded-2xl border border-violet-100/80 bg-gradient-to-br from-violet-50/90 to-purple-50/50 p-5 backdrop-blur-sm sm:p-6
+      transition-[box-shadow,transform] duration-300 hover:shadow-md hover:shadow-purple-100/80;
+  }
+
+  .crossy-label {
+    @apply mb-1.5 block text-sm font-medium text-stone-700;
+  }
+
+  .crossy-input {
+    @apply w-full rounded-xl border border-violet-100 bg-white px-3 py-2.5 text-stone-900 shadow-sm placeholder:text-stone-400
+      transition-all duration-200
+      focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-300/40;
+  }
+
+  .crossy-btn-primary {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border border-violet-300/60
+      bg-gradient-to-r from-violet-300 via-purple-300 to-violet-300 px-5 py-2.5 text-sm font-semibold text-violet-950 no-underline
+      shadow-md shadow-violet-300/35
+      transition-all duration-200 ease-out
+      hover:from-violet-200 hover:via-purple-200 hover:to-violet-200 hover:shadow-lg hover:shadow-violet-300/40 hover:scale-[1.02]
+      active:scale-[0.98]
+      focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2;
+  }
+
+  .crossy-btn-secondary {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border border-violet-100 bg-white/90 px-4 py-2 text-sm font-medium text-violet-900 no-underline shadow-sm
+      transition-all duration-200
+      hover:border-purple-200 hover:bg-violet-50/80 hover:shadow-md hover:scale-[1.01]
+      active:scale-[0.99];
+  }
+
+  .crossy-link {
+    @apply font-medium text-violet-700 underline decoration-violet-400/40 underline-offset-2
+      transition-colors duration-200
+      hover:text-violet-900 hover:decoration-violet-600/50;
+  }
+
+  .crossy-char-count {
+    @apply text-xs tabular-nums text-violet-600/80 transition-colors duration-200;
+  }
+
+  .crossy-char-count--warn {
+    @apply text-amber-700 font-medium;
+  }
+
+  .crossy-char-count--strong {
+    @apply text-rose-600 font-semibold;
+  }
+
+  .crossy-logo-badge {
+    @apply inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-300 via-purple-300 to-fuchsia-200 p-1.5
+      shadow-md shadow-violet-400/30 ring-2 ring-white/70
+      transition-transform duration-200 ease-out motion-safe:hover:scale-105 motion-safe:hover:rotate-1;
+  }
+
+  .crossy-main-enter {
+    @apply motion-safe:animate-[crossy-enter_0.4s_cubic-bezier(0.22,1,0.36,1)_both];
+  }
+
+  .crossy-flash-notice {
+    @apply motion-safe:animate-[crossy-fade_0.35s_ease-out_both];
+  }
+
+  .crossy-devise-logo {
+    @apply rounded-2xl bg-gradient-to-br from-violet-300 via-purple-300 to-fuchsia-200 p-3 shadow-lg shadow-violet-400/35 ring-4 ring-white
+      motion-safe:animate-[crossy-enter_0.5s_cubic-bezier(0.22,1,0.36,1)_both];
+  }
+}

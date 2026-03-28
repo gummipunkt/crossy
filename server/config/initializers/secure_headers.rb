@@ -58,7 +58,8 @@ SecureHeaders::Configuration.default do |config|
   config.csp = {
     default_src: [ "'self'" ],
     script_src: [ "'self'", "'unsafe-inline'" ],
-    style_src: [ "'self'", "'unsafe-inline'" ],
+    style_src: [ "'self'", "'unsafe-inline'", "https://fonts.googleapis.com" ],
+    font_src: [ "'self'", "https://fonts.gstatic.com" ],
     # Remote images (timelines, avatars); Mastodon/Bluesky/CDN hosts vary
     img_src: [ "'self'", "data:", "https:", "http:" ],
     connect_src: SecureHeadersCspOrigins.connect_src,

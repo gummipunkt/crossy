@@ -1,44 +1,44 @@
-<h1 class="text-xl font-semibold mb-4">Post #<%= @post.id %></
-<div class="rounded-md border bg-white p-5 shadow-sm">
-  <p class="mb-2"><strong>Text:</strong> <%= @post.content_text %></p>
+<div class="mb-6">
+  <h1 class="crossy-page-title">Post #<%= @post.id %></h1>
+</div>
+<div class="crossy-card">
+  <p class="mb-2 text-stone-800 whitespace-pre-line"><%= @post.content_text %></p>
   <% if @post.content_warning.present? %>
-    <p><strong>CW:</strong> <%= @post.content_warning %></p>
+    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"><span class="font-semibold">CW:</span> <%= @post.content_warning %></p>
   <% end %>
 </div>
 
-<h2 class="text-lg font-medium mt-6 mb-2">Auslieferungen</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<h2 class="font-display mt-8 text-xl font-semibold text-stone-900">Deliveries</h2>
+<div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
   <% @deliveries.each do |d| %>
-    <div class="rounded-md border bg-white p-5 shadow-sm">
-      <div class="text-sm font-medium mb-1"><%= d.provider_account.provider %></div>
-      <div class="text-sm">Status: <%= d.status %></div>
+    <div class="crossy-card-muted">
+      <div class="text-sm font-semibold capitalize text-stone-800 mb-1"><%= d.provider_account.provider %></div>
+      <div class="text-sm text-stone-600">Status: <span class="font-medium text-stone-800"><%= d.status %></span></div>
       <% if d.provider_post_id.present? %>
-        <div class="text-xs text-gray-600 break-all mt-1">ID: <%= d.provider_post_id %></div>
+        <div class="text-xs text-stone-500 break-all mt-2 font-mono">ID: <%= d.provider_post_id %></div>
       <% end %>
       <% if d.error_message.present? %>
-        <div class="text-xs text-red-700 mt-2">Error: <%= d.error_message %></div>
+        <div class="text-xs text-red-800 mt-2 rounded-md bg-red-50 px-2 py-1.5 border border-red-100">Error: <%= d.error_message %></div>
       <% end %>
     </div>
   <% end %>
 </div>
 
-<p class="mt-6"><%= link_to "New Post", new_post_path, class: "text-blue-600 hover:underline" %></p>
+<p class="mt-8"><%= link_to "New post", new_post_path, class: "crossy-btn-secondary" %></p>
 
-<% if (pa = @deliveries.find { |d| d.provider_account.provider == 'nostr' }&.provider_account) %>
-  <h2 class="text-lg font-medium mt-6 mb-2">Nostr</h2>
-  <div class="rounded-md border bg-white p-5 shadow-sm">
-    <div class="flex flex-wrap gap-3">
-      <button type="button" onclick="window.NostrConnect.connect()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
-        Mit Nostr Connect
+<% if (pa = @deliveries.find { |d| d.provider_account.provider == "nostr" }&.provider_account) %>
+  <h2 class="font-display mt-8 text-xl font-semibold text-stone-900">Nostr</h2>
+  <div class="crossy-card mt-3">
+    <div class="flex flex-wrap gap-2">
+      <button type="button" onclick="window.NostrConnect.connect()" class="crossy-btn-secondary">
+        Connect Nostr
       </button>
-      <button type="button" onclick="window.NostrConnect.signAndPublish(<%= @post.id %>, <%= pa.id %>)" class="inline-flex items-center rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700">
-        Signieren & Publizieren (NIP‑07)
+      <button type="button" onclick="window.NostrConnect.signAndPublish(<%= @post.id %>, <%= pa.id %>)" class="crossy-btn-primary border-0">
+        Sign & publish (NIP‑07)
       </button>
-      <button type="button" onclick="window.NostrPrepare.prepare(<%= @post.id %>, <%= pa.id %>)" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50">
-        Event als JSON herunterladen
+      <button type="button" onclick="window.NostrPrepare.prepare(<%= @post.id %>, <%= pa.id %>)" class="crossy-btn-secondary">
+        Download event JSON
       </button>
     </div>
   </div>
 <% end %>
-
-
