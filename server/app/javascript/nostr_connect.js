@@ -26,9 +26,13 @@ async function signAndPublish(postId, providerAccountId) {
   if (!ensureNIP07()) return
   try {
     // 1) Unsigned Event vom Server holen
+    const csrf = await getCSRF()
     const prep = await fetch('/api/v1/nostr/prepare_event', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf || ''
+      },
       body: JSON.stringify({ post_id: postId, provider_account_id: providerAccountId })
     })
     if (!prep.ok) {
@@ -48,7 +52,10 @@ async function signAndPublish(postId, providerAccountId) {
     // 4) Publish an Server
     const pub = await fetch('/api/v1/nostr/publish', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf || ''
+      },
       body: JSON.stringify({ post_id: postId, provider_account_id: providerAccountId, event: signed })
     })
     if (!pub.ok) {

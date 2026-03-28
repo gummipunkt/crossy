@@ -41,9 +41,9 @@ class PostsController < ApplicationController
   end
 
   def show
-    @post = Post.find(params[:id])
+    @post = current_user.posts.find(params[:id])
     @deliveries = @post.deliveries.includes(:provider_account)
-    @nostr_accounts = ProviderAccount.where(provider: "nostr").order(:handle)
+    @nostr_accounts = current_user.provider_accounts.where(provider: "nostr").order(:handle)
   end
 
   private

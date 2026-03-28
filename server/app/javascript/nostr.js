@@ -27,9 +27,13 @@ function downloadJson(filename, dataObj) {
 
 async function prepare(postId, providerAccountId) {
   try {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content
     const resp = await fetch('/api/v1/nostr/prepare_event', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf || ''
+      },
       body: JSON.stringify({ post_id: postId, provider_account_id: providerAccountId })
     });
     if (!resp.ok) {

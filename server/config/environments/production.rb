@@ -1,4 +1,5 @@
 require "active_support/core_ext/integer/time"
+require "uri"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
@@ -68,10 +69,20 @@ Rails.application.configure do
     enable_starttls_auto: ENV.fetch('SMTP_STARTTLS', 'true') == 'true',
     openssl_verify_mode: ENV['SMTP_OPENSSL_VERIFY_MODE']
   }
-  config.action_mailer.default_url_options = { host: ENV['PUBLIC_BASE_URL'] }
-
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  public_base = ENV["PUBLIC_BASE_URL"].presence
+  if public_base
+    begin
+      uri = URI.parse(public_base)
+      mailer_opts = { host: uri.host.presence || "localhost", protocol: uri.scheme.presence || "https" }
+      mailer_opts[:port] = uri.port if uri.port && ![ 80, 443 ].include?(uri.port)
+      config.action_mailer.default_url_options = mailer_opts.compact
+      config.hosts << uri.host if uri.host.present?
+    rescue URI::InvalidURIError
+      config.action_mailer.default_url_options = { host: "localhost", protocol: "https" }
+    end
+  else
+    config.action_mailer.default_url_options = { host: "localhost", protocol: "https" }
+  end
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
   # config.action_mailer.smtp_settings = {

@@ -23,10 +23,5 @@
 #   # Report violations without enforcing the policy.
 #   # config.content_security_policy_report_only = true
 # end
-Rails.application.config.content_security_policy do |policy|
-    policy.default_src :self
-    policy.img_src :self, :data, :https, :http
-    # optional:
-    # policy.script_src :self, :unsafe_inline
-    # policy.style_src  :self, :unsafe_inline
-end
+# CSP is defined in config/initializers/secure_headers.rb (single source of truth).
+# Keeping Rails' CSP block disabled avoids sending duplicate/conflicting Content-Security-Policy headers.

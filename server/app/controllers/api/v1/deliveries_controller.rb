@@ -1,10 +1,8 @@
 module Api
   module V1
-    class DeliveriesController < ApplicationController
-      protect_from_forgery with: :null_session
-
+    class DeliveriesController < BaseController
       def index
-        post = Post.find(params[:post_id])
+        post = current_user.posts.find(params[:post_id])
         render json: post.deliveries.includes(:provider_account).map { |d|
           {
             id: d.id,

@@ -21,6 +21,8 @@ class ProviderAccountsController < ApplicationController
       end
       instance = instance.sub(%r{/+$}, "")
 
+      SsrfSafeUrlValidator.validate!(instance)
+
       # Validate token against instance
       conn = Faraday.new(url: instance) { |f| f.adapter Faraday.default_adapter }
       verify = conn.get("/api/v1/accounts/verify_credentials") do |r|
@@ -64,10 +66,18 @@ class ProviderAccountsController < ApplicationController
       redirect_to provider_accounts_path, notice: "Mastodon verbunden: #{pa.handle}"
 
     when "bluesky"
+      instance = params[:instance].presence&.to_s&.strip
+      if instance.present?
+        unless instance.start_with?("http://", "https://")
+          instance = "https://#{instance}"
+        end
+        instance = instance.sub(%r{/+$}, "")
+        SsrfSafeUrlValidator.validate!(instance)
+      end
       pa = ProviderAccount.find_or_create_by!(
         provider: "bluesky",
         handle: params.require(:handle),
-        instance: params[:instance].presence,
+        instance: instance.presence,
         user_id: current_user.id
       )
       Posting::BlueskyClient.new(pa).login!(params.require(:app_password))
@@ -98,5 +108,3 @@ class ProviderAccountsController < ApplicationController
     redirect_to provider_accounts_path, notice: "Channel removed"
   end
 end
-
-

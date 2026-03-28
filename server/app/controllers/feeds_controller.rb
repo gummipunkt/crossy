@@ -1,5 +1,4 @@
 class FeedsController < ApplicationController
-  skip_before_action :verify_authenticity_token, only: :interact
   def index
     @items = FeedAggregator.new.aggregate(limit: 50, user: current_user)
   end
@@ -46,5 +45,3 @@ class FeedsController < ApplicationController
     head :unprocessable_entity
   end
 end
-
-
