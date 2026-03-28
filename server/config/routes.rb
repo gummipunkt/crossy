@@ -8,8 +8,8 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      resources :posts, only: [:create, :show] do
-        resources :deliveries, only: [:index]
+      resources :posts, only: [ :create, :show ] do
+        resources :deliveries, only: [ :index ]
       end
       namespace :nostr do
         post :prepare_event
@@ -22,18 +22,18 @@ Rails.application.routes.draw do
   get "/auth/threads", to: "threads_auth#new"
   get "/auth/threads/callback", to: "threads_auth#callback"
 
-  resources :provider_accounts, only: [:index, :create, :destroy]
+  resources :provider_accounts, only: [ :index, :create, :destroy ]
   # Own Posts
   get "/my", to: "timeline#index"
   # Aggregated Timeline
   get "/timeline", to: "feeds#index"
   post "/timeline/action", to: "feeds#interact"
 
-  resources :posts, only: [:new, :create, :show]
+  resources :posts, only: [ :new, :create, :show ]
   root to: "posts#new"
 
   namespace :admin do
-    resources :users, only: [:index, :show, :edit, :update, :destroy] do
+    resources :users, only: [ :index, :show, :edit, :update, :destroy ] do
       member do
         post :make_admin
       end

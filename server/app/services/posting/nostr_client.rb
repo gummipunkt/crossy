@@ -24,7 +24,7 @@ module Posting
     def publish_signed_event!(event, relays: DEFAULT_RELAYS)
       # Lazy load WS-Client nur hier, damit prepare_event ohne Gem funktioniert
       require "websocket-client-simple"
-      message = ["EVENT", event]
+      message = [ "EVENT", event ]
       payload = JSON.dump(message)
 
       last_ok = nil
@@ -55,5 +55,3 @@ module Posting
     end
   end
 end
-
-

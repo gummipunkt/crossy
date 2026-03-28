@@ -6,5 +6,3 @@ class Post < ApplicationRecord
 
   validates :content_text, presence: true
 end
-
-

@@ -36,16 +36,16 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {
-    address: ENV['SMTP_ADDRESS'],
-    port: ENV.fetch('SMTP_PORT', 587).to_i,
-    domain: ENV['SMTP_DOMAIN'],
-    user_name: ENV['SMTP_USERNAME'],
-    password: ENV['SMTP_PASSWORD'],
-    authentication: ENV.fetch('SMTP_AUTH', 'login'),
-    enable_starttls_auto: ENV.fetch('SMTP_STARTTLS', 'true') == 'true',
-    openssl_verify_mode: ENV['SMTP_OPENSSL_VERIFY_MODE']
+    address: ENV["SMTP_ADDRESS"],
+    port: ENV.fetch("SMTP_PORT", 587).to_i,
+    domain: ENV["SMTP_DOMAIN"],
+    user_name: ENV["SMTP_USERNAME"],
+    password: ENV["SMTP_PASSWORD"],
+    authentication: ENV.fetch("SMTP_AUTH", "login"),
+    enable_starttls_auto: ENV.fetch("SMTP_STARTTLS", "true") == "true",
+    openssl_verify_mode: ENV["SMTP_OPENSSL_VERIFY_MODE"]
   }
-  config.action_mailer.default_url_options = { host: ENV['PUBLIC_BASE_URL'].presence || 'http://localhost', port: ENV['PUBLIC_BASE_URL'].present? ? nil : 3000 }
+  config.action_mailer.default_url_options = { host: ENV["PUBLIC_BASE_URL"].presence || "http://localhost", port: ENV["PUBLIC_BASE_URL"].present? ? nil : 3000 }
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

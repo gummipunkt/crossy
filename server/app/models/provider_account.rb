@@ -44,5 +44,3 @@ class ProviderAccount < ApplicationRecord
     self.instance = url.sub(%r{/+$}, "")
   end
 end
-
-

@@ -13,5 +13,3 @@ class Delivery < ApplicationRecord
 
   validates :status, presence: true
 end
-
-

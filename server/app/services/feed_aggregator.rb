@@ -64,13 +64,13 @@ class FeedAggregator
           post = it["post"] || {}
           images = nil
           emb = post["embed"]
-          if emb && (emb["$type"]&.include?("images#view") || emb.dig("media","$type")&.include?("images#view"))
-            imgs = emb["images"] || emb.dig("media","images")
+          if emb && (emb["$type"]&.include?("images#view") || emb.dig("media", "$type")&.include?("images#view"))
+            imgs = emb["images"] || emb.dig("media", "images")
             images = Array(imgs).map { |im| { "url" => (im["fullsize"] || im["thumb"]), "alt" => im["alt"].to_s } }
           end
           # Baue eine öffentliche Bluesky-Web-URL
           uri = post["uri"].to_s
-          rkey = uri.split('/')[-1]
+          rkey = uri.split("/")[-1]
           handle_or_did = post.dig("author", "handle") || post.dig("author", "did")
           bsky_url = (handle_or_did && rkey) ? "https://bsky.app/profile/#{handle_or_did}/post/#{rkey}" : nil
           list << Item.new(
@@ -103,12 +103,12 @@ class FeedAggregator
       fields = %w[
         id media_product_type media_type media_url permalink username text timestamp shortcode thumbnail_url
         children{id,media_type,media_url,thumbnail_url}
-      ].join(',')
+      ].join(",")
       data = nil
       resp2 = conn.get("/v1.0/me/threads", { access_token: pa.access_token, fields: fields, limit: 25 }, { "X-IG-App-ID" => app_id })
       if resp2.success?
         data = (JSON.parse(resp2.body)["data"] rescue nil)
-      elsif resp2.status == 400 && (JSON.parse(resp2.body) rescue {}).dig("error","code") == 190
+      elsif resp2.status == 400 && (JSON.parse(resp2.body) rescue {}).dig("error", "code") == 190
         if (new_token = refresh_threads_token(pa))
           resp2 = conn.get("/v1.0/me/threads", { access_token: new_token, fields: fields, limit: 25 }, { "X-IG-App-ID" => app_id })
           data = (JSON.parse(resp2.body)["data"] rescue nil) if resp2.success?
@@ -130,7 +130,7 @@ class FeedAggregator
             images << { "url" => it["thumbnail_url"], "alt" => it["alt_text"].to_s }
           end
         elsif it["media_type"].to_s == "CAROUSEL_ALBUM" && it["children"].is_a?(Hash)
-          Array(it.dig("children","data")).first(4).each do |ch|
+          Array(it.dig("children", "data")).first(4).each do |ch|
             url = ch["media_url"] || ch["thumbnail_url"]
             images << { "url" => url, "alt" => "" } if url.present?
           end
@@ -161,7 +161,7 @@ class FeedAggregator
       did, access = client.send(:ensure_session)
     rescue => _e
     end
-    [did, access]
+    [ did, access ]
   end
 
   def refresh_threads_token(pa)
@@ -183,13 +183,13 @@ class FeedAggregator
       # Threads/Media-ähnliche Felder (analog IG Graph):
       # Vermeide feldspezifische Fehler wie "content" auf Media
       fields: [
-        'id',
-        'permalink', 'permalink_url',
-        'timestamp',
-        'caption', 'username',
-        'media_type', 'media_url', 'thumbnail_url',
-        'children{media_type,media_url,thumbnail_url}'
-      ].join(',')
+        "id",
+        "permalink", "permalink_url",
+        "timestamp",
+        "caption", "username",
+        "media_type", "media_url", "thumbnail_url",
+        "children{media_type,media_url,thumbnail_url}"
+      ].join(",")
     })
     return nil unless resp.success?
     obj = JSON.parse(resp.body) rescue nil
@@ -214,15 +214,15 @@ class FeedAggregator
   def fetch_threads_details_batch(conn, token, ids)
     resp = conn.get("/v1.0/", {
       access_token: token,
-      ids: ids.join(','),
+      ids: ids.join(","),
       fields: [
-        'id',
-        'permalink', 'permalink_url',
-        'timestamp',
-        'caption', 'username',
-        'media_type', 'media_url', 'thumbnail_url',
-        'children{media_type,media_url,thumbnail_url}'
-      ].join(',')
+        "id",
+        "permalink", "permalink_url",
+        "timestamp",
+        "caption", "username",
+        "media_type", "media_url", "thumbnail_url",
+        "children{media_type,media_url,thumbnail_url}"
+      ].join(",")
     })
     return [] unless resp.success?
     parsed = JSON.parse(resp.body) rescue {}
@@ -246,24 +246,22 @@ class FeedAggregator
 
   def extract_threads_images(obj)
     if obj["media_url"] && (!obj["media_type"] || obj["media_type"].to_s.upcase.start_with?("IMAGE"))
-      return [{ "url" => obj["media_url"], "alt" => "" }]
+      return [ { "url" => obj["media_url"], "alt" => "" } ]
     end
     if obj["thumbnail_url"]
-      return [{ "url" => obj["thumbnail_url"], "alt" => "" }]
+      return [ { "url" => obj["thumbnail_url"], "alt" => "" } ]
     end
     if obj["image_url"]
-      return [{ "url" => obj["image_url"], "alt" => "" }]
+      return [ { "url" => obj["image_url"], "alt" => "" } ]
     end
-    if obj["attachments"] && obj.dig("attachments","data").is_a?(Array)
-      imgs = obj.dig("attachments","data").select { |a| (!a["media_type"] || a["media_type"].to_s.upcase.start_with?("IMAGE")) && (a["media_url"] || a["thumbnail_url"] || a["image_url"]).present? }
+    if obj["attachments"] && obj.dig("attachments", "data").is_a?(Array)
+      imgs = obj.dig("attachments", "data").select { |a| (!a["media_type"] || a["media_type"].to_s.upcase.start_with?("IMAGE")) && (a["media_url"] || a["thumbnail_url"] || a["image_url"]).present? }
       return imgs.map { |a| { "url" => (a["media_url"] || a["thumbnail_url"] || a["image_url"]), "alt" => "" } } if imgs.any?
     end
-    if obj["children"] && obj.dig("children","data").is_a?(Array)
-      imgs = obj.dig("children","data").select { |a| (!a["media_type"] || a["media_type"].to_s.upcase.start_with?("IMAGE")) && (a["media_url"] || a["thumbnail_url"] || a["image_url"]).present? }
+    if obj["children"] && obj.dig("children", "data").is_a?(Array)
+      imgs = obj.dig("children", "data").select { |a| (!a["media_type"] || a["media_type"].to_s.upcase.start_with?("IMAGE")) && (a["media_url"] || a["thumbnail_url"] || a["image_url"]).present? }
       return imgs.map { |a| { "url" => (a["media_url"] || a["thumbnail_url"] || a["image_url"]), "alt" => "" } } if imgs.any?
     end
     nil
   end
 end
-
-

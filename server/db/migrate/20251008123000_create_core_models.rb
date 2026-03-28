@@ -11,7 +11,7 @@ class CreateCoreModels < ActiveRecord::Migration[7.1]
       t.references :user, foreign_key: true, null: true
       t.timestamps
     end
-    add_index :provider_accounts, [:provider, :handle, :instance], unique: true, name: "idx_provider_accounts_identity"
+    add_index :provider_accounts, [ :provider, :handle, :instance ], unique: true, name: "idx_provider_accounts_identity"
 
     create_table :posts do |t|
       t.text :content_text, null: false
@@ -32,7 +32,7 @@ class CreateCoreModels < ActiveRecord::Migration[7.1]
       t.datetime :finished_at
       t.timestamps
     end
-    add_index :deliveries, [:post_id, :provider_account_id], unique: true
+    add_index :deliveries, [ :post_id, :provider_account_id ], unique: true
     add_index :deliveries, :dedup_key, unique: true
 
     create_table :media_attachments do |t|
@@ -45,5 +45,3 @@ class CreateCoreModels < ActiveRecord::Migration[7.1]
     end
   end
 end
-
-

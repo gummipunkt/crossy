@@ -7,7 +7,7 @@ module SecureHeadersCspOrigins
   module_function
 
   def connect_src
-    origins = ["'self'"]
+    origins = [ "'self'" ]
     origins.concat(origin_list("THREADS_GRAPH_BASE", "https://graph.threads.net"))
     origins.concat(origin_list("THREADS_OAUTH_BASE", "https://www.threads.net"))
     origins.concat(origin_list("BLUESKY_BASE", "https://bsky.social"))
@@ -42,7 +42,7 @@ module SecureHeadersCspOrigins
       else
         "#{scheme}://#{host}"
       end
-    [origin]
+    [ origin ]
   rescue URI::InvalidURIError
     []
   end
@@ -56,14 +56,14 @@ SecureHeaders::Configuration.default do |config|
 
   thread_frames = SecureHeadersCspOrigins.threads_frame_origins
   config.csp = {
-    default_src: ["'self'"],
-    script_src: ["'self'", "'unsafe-inline'"],
-    style_src: ["'self'", "'unsafe-inline'"],
+    default_src: [ "'self'" ],
+    script_src: [ "'self'", "'unsafe-inline'" ],
+    style_src: [ "'self'", "'unsafe-inline'" ],
     # Remote images (timelines, avatars); Mastodon/Bluesky/CDN hosts vary
-    img_src: ["'self'", "data:", "https:", "http:"],
+    img_src: [ "'self'", "data:", "https:", "http:" ],
     connect_src: SecureHeadersCspOrigins.connect_src,
-    frame_ancestors: ["'self'"],
-    frame_src: ["'self'", *(thread_frames.presence || ["https://www.threads.net"])],
-    child_src: ["'self'", *(thread_frames.presence || ["https://www.threads.net"])]
+    frame_ancestors: [ "'self'" ],
+    frame_src: [ "'self'", *(thread_frames.presence || [ "https://www.threads.net" ]) ],
+    child_src: [ "'self'", *(thread_frames.presence || [ "https://www.threads.net" ]) ]
   }
 end

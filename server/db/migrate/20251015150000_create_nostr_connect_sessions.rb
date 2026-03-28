@@ -10,8 +10,6 @@ class CreateNostrConnectSessions < ActiveRecord::Migration[7.1]
       t.datetime :expires_at, null: false
       t.timestamps
     end
-    add_index :nostr_connect_sessions, [:provider_account_id, :status]
+    add_index :nostr_connect_sessions, [ :provider_account_id, :status ]
   end
 end
-
-

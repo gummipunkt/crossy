@@ -102,7 +102,7 @@ module Posting
       if (new_refresh = parsed["refreshJwt"]).present? && new_refresh != refresh_jwt
         @provider_account.update!(refresh_token: new_refresh)
       end
-      [did, access]
+      [ did, access ]
     end
 
     def upload_blob!(base_url, access_jwt, bytes, mime)
@@ -126,5 +126,3 @@ module Posting
     end
   end
 end
-
-

@@ -5,5 +5,3 @@ class MediaAttachment < ApplicationRecord
   validates :filename, presence: true
   validates :content_type, presence: true
 end
-
-

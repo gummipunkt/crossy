@@ -158,5 +158,3 @@ module Posting
     end
   end
 end
-
-

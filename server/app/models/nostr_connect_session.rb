@@ -16,5 +16,3 @@ class NostrConnectSession < ApplicationRecord
 
   scope :active_for, ->(pa_id) { where(provider_account_id: pa_id, status: "active").where("expires_at > ?", Time.current).order(id: :desc) }
 end
-
-
