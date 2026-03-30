@@ -29,7 +29,11 @@ Rails.application.routes.draw do
   get "/timeline", to: "feeds#index"
   post "/timeline/action", to: "feeds#interact"
 
-  resources :posts, only: [ :new, :create, :show ]
+  resources :posts, only: [ :new, :create, :show ] do
+    member do
+      get :deliveries
+    end
+  end
   root to: "posts#new"
 
   namespace :admin do

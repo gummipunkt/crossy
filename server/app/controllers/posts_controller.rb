@@ -46,6 +46,12 @@ class PostsController < ApplicationController
     @nostr_accounts = current_user.provider_accounts.where(provider: "nostr").order(:handle)
   end
 
+  def deliveries
+    @post = current_user.posts.find(params[:id])
+    @deliveries = @post.deliveries.includes(:provider_account)
+    render partial: "deliveries", locals: { post: @post, deliveries: @deliveries }
+  end
+
   private
 
   def post_params

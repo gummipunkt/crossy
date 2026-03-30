@@ -1,7 +1,7 @@
 <div class="mb-6">
   <h1 class="crossy-page-title">Post #<%= @post.id %></h1>
 </div>
-<div class="crossy-card">
+<div class="crossy-card crossy-card-appear">
   <p class="mb-2 text-stone-800 whitespace-pre-line"><%= @post.content_text %></p>
   <% if @post.content_warning.present? %>
     <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"><span class="font-semibold">CW:</span> <%= @post.content_warning %></p>
@@ -9,20 +9,9 @@
 </div>
 
 <h2 class="font-display mt-8 text-xl font-semibold text-stone-900">Deliveries</h2>
-<div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-  <% @deliveries.each do |d| %>
-    <div class="crossy-card-muted">
-      <div class="text-sm font-semibold capitalize text-stone-800 mb-1"><%= d.provider_account.provider %></div>
-      <div class="text-sm text-stone-600">Status: <span class="font-medium text-stone-800"><%= d.status %></span></div>
-      <% if d.provider_post_id.present? %>
-        <div class="text-xs text-stone-500 break-all mt-2 font-mono">ID: <%= d.provider_post_id %></div>
-      <% end %>
-      <% if d.error_message.present? %>
-        <div class="text-xs text-red-800 mt-2 rounded-md bg-red-50 px-2 py-1.5 border border-red-100">Error: <%= d.error_message %></div>
-      <% end %>
-    </div>
-  <% end %>
-</div>
+<turbo-frame id="<%= dom_id(@post, :deliveries) %>" src="<%= deliveries_post_path(@post) %>" data-deliveries-frame="true" loading="lazy">
+  <%= render partial: "deliveries", locals: { post: @post, deliveries: @deliveries } %>
+</turbo-frame>
 
 <p class="mt-8"><%= link_to "New post", new_post_path, class: "crossy-btn-secondary" %></p>
 

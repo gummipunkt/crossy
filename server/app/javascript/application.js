@@ -49,7 +49,34 @@ function setupComposerCounters () {
   }
 }
 
-// Composer: Select/Deselect all providers + Zeichenzähler
+function setupDeliveriesPolling () {
+  const frame = document.querySelector("[data-deliveries-frame]")
+  if (!frame || frame.dataset.pollingBound) return
+  frame.dataset.pollingBound = "1"
+
+  const startedAt = Date.now()
+  const maxDurationMs = 60000 // stop after ~1 minute
+  const intervalMs = 4000
+
+  const timer = setInterval(() => {
+    if (!document.body.contains(frame)) {
+      clearInterval(timer)
+      return
+    }
+    if (Date.now() - startedAt > maxDurationMs) {
+      clearInterval(timer)
+      return
+    }
+    if (typeof frame.reload === "function") {
+      frame.reload()
+    } else if (frame.src) {
+      // Fallback for older Turbo — reset src to trigger reload
+      frame.src = frame.src
+    }
+  }, intervalMs)
+}
+
+// Composer: Select/Deselect all providers + Character counter + Deliveries-Polling
 document.addEventListener("turbo:load", () => {
   const selAll = document.getElementById("select-all-providers")
   const deselAll = document.getElementById("deselect-all-providers")
@@ -64,4 +91,5 @@ document.addEventListener("turbo:load", () => {
   }
 
   setupComposerCounters()
+  setupDeliveriesPolling()
 })
