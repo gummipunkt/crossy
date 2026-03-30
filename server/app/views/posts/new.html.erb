@@ -1,6 +1,6 @@
 <div class="mb-6">
-  <h1 class="crossy-page-title">Neuer Beitrag</h1>
-  <p class="mt-1 text-sm text-violet-900/70">Einmal schreiben, an alle gewählten Netze senden.</p>
+  <h1 class="crossy-page-title">New Post</h1>
+  <p class="mt-1 text-sm text-violet-900/70">Write once, send to all selected networks.</p>
 </div>
 
 <div class="crossy-card crossy-card-lift crossy-card-appear">
@@ -9,8 +9,8 @@
     <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
       <%= f.label :content_text, "Text", class: "crossy-label mb-0" %>
       <span class="crossy-char-count text-right max-w-full" id="post_content_text_count_wrap" aria-live="polite">
-        <span id="post_content_text_count">0</span> Zeichen
-        <span class="text-violet-400/90 font-normal"> · Hinweis: viele Fediverse-Instanzen ~500 Zeichen</span>
+        <span id="post_content_text_count">0</span> Characters
+        <span class="text-violet-400/90 font-normal"> · Note: Many Fediverse instances have a character limit of ~500 characters</span>
       </span>
     </div>
     <%= f.text_area :content_text, rows: 6, required: true,
@@ -21,20 +21,20 @@
 
   <div>
     <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
-      <%= f.label :content_warning, "Inhaltswarnung (optional)", class: "crossy-label mb-0" %>
+      <%= f.label :content_warning, "Content warning (optional)", class: "crossy-label mb-0" %>
       <span class="crossy-char-count text-right" id="post_content_warning_count_wrap" aria-live="polite">
-        <span id="post_content_warning_count">0</span> Zeichen
+        <span id="post_content_warning_count">0</span> Characters
       </span>
     </div>
-    <%= f.text_field :content_warning, class: "crossy-input", placeholder: "z. B. Politik, Blitzlicht", id: "post_content_warning", data: { warn_chars: 200 } %>
+    <%= f.text_field :content_warning, class: "crossy-input", placeholder: "e.g., politics, photography, cats", id: "post_content_warning", data: { warn_chars: 200 } %>
   </div>
 
   <div>
-    <p class="crossy-label mb-2">Netzwerke</p>
+    <p class="crossy-label mb-2">Networks</p>
     <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-      <button type="button" id="select-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Alle markieren</button>
+      <button type="button" id="select-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Select all</button>
       <span class="text-violet-200">·</span>
-      <button type="button" id="deselect-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Alle abwählen</button>
+      <button type="button" id="deselect-all-providers" class="crossy-link bg-transparent border-0 p-0 cursor-pointer">Deselect all</button>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
       <% @provider_accounts.each do |pa| %>
@@ -48,21 +48,21 @@
 
   <div>
     <div class="flex flex-wrap items-end justify-between gap-2 mb-1.5">
-      <p class="crossy-label mb-0">Medien</p>
+      <p class="crossy-label mb-0">Media</p>
       <span class="crossy-char-count text-right" id="post_alts_count_wrap" aria-live="polite">
-        Alt-Texte: <span id="post_alts_count">0</span> Zeichen
+        Alt text: <span id="post_alts_count">0</span> Characters
       </span>
     </div>
     <input type="file" name="files[]" multiple class="block w-full text-sm text-violet-900/80 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-violet-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-900 hover:file:bg-violet-200/80 file:transition-colors" />
   </div>
 
   <div>
-    <p class="crossy-label mb-2">Alt-Texte (optional, eine Zeile pro Bild)</p>
-    <textarea name="alts" rows="3" placeholder="Bilder für Screenreader beschreiben…" class="crossy-input" id="post_alts"></textarea>
+    <p class="crossy-label mb-2">Alt text (optional, one line per image)</p>
+    <textarea name="alts" rows="3" placeholder="Describe images for screen readers…" class="crossy-input" id="post_alts"></textarea>
   </div>
 
   <div class="pt-1">
-    <%= f.submit "Veröffentlichen", class: "crossy-btn-primary" %>
+    <%= f.submit "Publish", class: "crossy-btn-primary" %>
   </div>
 <% end %>
 </div>
