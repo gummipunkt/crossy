@@ -9,16 +9,32 @@ class FeedAggregator
     :likes_count, :reposts_count, :replies_count,
     :liked_by_me, :reposted_by_me, :bookmarked_by_me,
     :cid,
+    :reblogged_by,
     keyword_init: true
   )
 
   def aggregate(limit: 50, user: nil)
-    items = []
-    items.concat fetch_mastodon(user)
-    items.concat fetch_bluesky(user)
-    items.concat fetch_threads(user)
-    items.sort_by! { |i| i.created_at || Time.at(0) }
-    items.reverse.first(limit)
+    buckets = {
+      mastodon: fetch_mastodon(user),
+      bluesky: fetch_bluesky(user),
+      threads: fetch_threads(user)
+    }
+
+    # Guarantee each provider gets at least `min_per_provider` slots so
+    # a very active provider cannot push others out of the feed entirely.
+    min_per_provider = [ limit / [ buckets.count { |_, v| v.any? }, 1 ].max, 5 ].min
+    reserved = []
+    remainder = []
+
+    buckets.each_value do |list|
+      sorted = list.sort_by { |i| -(i.created_at&.to_f || 0) }
+      reserved.concat(sorted.first(min_per_provider))
+      remainder.concat(sorted.drop(min_per_provider))
+    end
+
+    remainder.sort_by! { |i| -(i.created_at&.to_f || 0) }
+    result = reserved + remainder.first(limit - reserved.size)
+    result.sort_by { |i| -(i.created_at&.to_f || 0) }.first(limit)
   rescue => e
     Rails.logger.error("Feed aggregate error: #{e.message}")
     []
@@ -39,22 +55,28 @@ class FeedAggregator
       end
       next unless resp.success?
       (JSON.parse(resp.body) rescue []).each do |st|
-        images = Array(st["media_attachments"]).map { |m| { "url" => (m["preview_url"] || m["url"]), "alt" => m["description"].to_s } }
+        # For reblogs the actual content lives in the nested "reblog" object;
+        # the outer status has empty content and url=nil.
+        display = st["reblog"].presence || st
+        reblogger = st["reblog"].present? ? st.dig("account", "acct") : nil
+
+        images = Array(display["media_attachments"]).map { |m| { "url" => (m["preview_url"] || m["url"]), "alt" => m["description"].to_s } }
         list << Item.new(
           provider: "mastodon",
           id: st["id"],
-          author: st.dig("account", "acct"),
-          content: ActionView::Base.full_sanitizer.sanitize(st["content"].to_s),
+          author: display.dig("account", "acct"),
+          content: ActionView::Base.full_sanitizer.sanitize(display["content"].to_s),
           created_at: (Time.parse(st["created_at"]) rescue nil),
-          url: st["url"],
+          url: display["url"],
           images: (images.presence),
-          avatar_url: st.dig("account", "avatar_static") || st.dig("account", "avatar"),
-          likes_count: st["favourites_count"].to_i,
-          reposts_count: st["reblogs_count"].to_i,
-          replies_count: st["replies_count"].to_i,
-          liked_by_me: !!st["favourited"],
-          reposted_by_me: !!st["reblogged"],
-          bookmarked_by_me: !!st["bookmarked"]
+          avatar_url: display.dig("account", "avatar_static") || display.dig("account", "avatar"),
+          likes_count: display["favourites_count"].to_i,
+          reposts_count: display["reblogs_count"].to_i,
+          replies_count: display["replies_count"].to_i,
+          liked_by_me: !!display["favourited"],
+          reposted_by_me: !!display["reblogged"],
+          bookmarked_by_me: !!display["bookmarked"],
+          reblogged_by: reblogger
         )
       end
     end

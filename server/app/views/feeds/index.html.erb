@@ -28,6 +28,15 @@
   <div class="space-y-4">
     <% @items.each do |it| %>
       <article class="crossy-card group">
+        <% if it.reblogged_by.present? %>
+          <div class="flex items-center gap-1.5 text-xs text-stone-500 mb-2 pl-[52px]">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 3l-4 4 4 4"/><path d="M3 7h14a2 2 0 0 1 2 2v1"/>
+              <path d="M13 17l4-4-4-4"/><path d="M17 13H3a2 2 0 0 1-2-2v-1"/>
+            </svg>
+            <span><%= it.reblogged_by %> reposted</span>
+          </div>
+        <% end %>
         <%# Header row: avatar + author + provider badge + timestamp %>
         <div class="flex items-start gap-3">
           <% if it.avatar_url.present? %>
