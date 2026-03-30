@@ -200,7 +200,7 @@ class FeedAggregator
   def extract_threads_images(obj)
     if obj["media_type"].to_s == "IMAGE"
       url = obj["media_url"].presence || obj["thumbnail_url"].presence
-      return [{ "url" => url, "alt" => obj["alt_text"].to_s }] if url
+      return [ { "url" => url, "alt" => obj["alt_text"].to_s } ] if url
     elsif obj["media_type"].to_s == "CAROUSEL_ALBUM" && obj["children"].is_a?(Hash)
       imgs = Array(obj.dig("children", "data")).first(4).filter_map do |ch|
         url = ch["media_url"] || ch["thumbnail_url"]
@@ -208,7 +208,7 @@ class FeedAggregator
       end
       return imgs if imgs.any?
     elsif obj["media_type"].to_s == "VIDEO" && obj["thumbnail_url"].present?
-      return [{ "url" => obj["thumbnail_url"], "alt" => obj["alt_text"].to_s }]
+      return [ { "url" => obj["thumbnail_url"], "alt" => obj["alt_text"].to_s } ]
     end
     nil
   end

@@ -27,12 +27,13 @@ class FeedsController < ApplicationController
   def mastodon_interact(item_id, action)
     pa = current_user.provider_accounts.find_by!(provider: "mastodon")
     conn = Faraday.new(url: pa.instance) { |f| f.adapter Faraday.default_adapter }
-    endpoint = case action
-               when "like"     then "/api/v1/statuses/#{item_id}/favourite"
-               when "bookmark" then "/api/v1/statuses/#{item_id}/bookmark"
-               when "repost"   then "/api/v1/statuses/#{item_id}/reblog"
-               else raise ActionController::BadRequest, "unsupported action"
-               end
+    endpoint =
+      case action
+      when "like"     then "/api/v1/statuses/#{item_id}/favourite"
+      when "bookmark" then "/api/v1/statuses/#{item_id}/bookmark"
+      when "repost"   then "/api/v1/statuses/#{item_id}/reblog"
+      else raise ActionController::BadRequest, "unsupported action"
+      end
     resp = conn.post(endpoint) { |r| r.headers["Authorization"] = "Bearer #{pa.access_token}" }
     head(resp.success? ? :ok : :unprocessable_entity)
   end
@@ -45,11 +46,12 @@ class FeedsController < ApplicationController
     subject = { "uri" => item_id }
     subject["cid"] = cid if cid.present?
 
-    collection, type_key = case action
-                           when "like"   then [ "app.bsky.feed.like", "app.bsky.feed.like" ]
-                           when "repost" then [ "app.bsky.feed.repost", "app.bsky.feed.repost" ]
-                           else raise ActionController::BadRequest, "unsupported action"
-                           end
+    collection, type_key =
+      case action
+      when "like"   then [ "app.bsky.feed.like", "app.bsky.feed.like" ]
+      when "repost" then [ "app.bsky.feed.repost", "app.bsky.feed.repost" ]
+      else raise ActionController::BadRequest, "unsupported action"
+      end
 
     body = {
       repo: did,
@@ -67,11 +69,12 @@ class FeedsController < ApplicationController
   def threads_interact(item_id, action)
     pa = current_user.provider_accounts.find_by!(provider: "threads")
     conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
-    endpoint = case action
-               when "like"   then "/v1.0/#{item_id}/likes"
-               when "repost" then "/v1.0/#{item_id}/reposts"
-               else raise ActionController::BadRequest, "unsupported action"
-               end
+    endpoint =
+      case action
+      when "like"   then "/v1.0/#{item_id}/likes"
+      when "repost" then "/v1.0/#{item_id}/reposts"
+      else raise ActionController::BadRequest, "unsupported action"
+      end
     resp = conn.post(endpoint) { |r| r.body = { access_token: pa.access_token } }
     head(resp.success? ? :ok : :unprocessable_entity)
   end
