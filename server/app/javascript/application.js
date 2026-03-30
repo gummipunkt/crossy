@@ -55,7 +55,7 @@ function setupDeliveriesPolling () {
   frame.dataset.pollingBound = "1"
 
   const startedAt = Date.now()
-  const maxDurationMs = 60000 // stop after ~1 minute
+  const maxDurationMs = 60000
   const intervalMs = 4000
 
   const timer = setInterval(() => {
@@ -70,13 +70,64 @@ function setupDeliveriesPolling () {
     if (typeof frame.reload === "function") {
       frame.reload()
     } else if (frame.src) {
-      // Fallback for older Turbo — reset src to trigger reload
       frame.src = frame.src
     }
   }, intervalMs)
 }
 
-// Composer: Select/Deselect all providers + Character counter + Deliveries-Polling
+// Optimistic UI for timeline interactions (like, repost, bookmark)
+window.feedAct = async function feedAct (el) {
+  if (el.dataset.pending) return
+  el.dataset.pending = "1"
+
+  const actionType = el.dataset.actionType
+  const wasActive = el.classList.contains("crossy-action-btn--active")
+
+  el.classList.toggle("crossy-action-btn--active")
+
+  const statEl = el.querySelector(".crossy-stat")
+  let prevCount = null
+  if (statEl) {
+    prevCount = parseInt(statEl.textContent, 10) || 0
+    statEl.textContent = wasActive ? Math.max(0, prevCount - 1) : prevCount + 1
+  }
+
+  const payload = {
+    provider: el.dataset.provider,
+    id: el.dataset.id,
+    action_type: actionType
+  }
+  if (el.dataset.cid) payload.cid = el.dataset.cid
+
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+
+  try {
+    const resp = await fetch("/timeline/action", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrf || "",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+    if (!resp.ok) {
+      rollback()
+    }
+  } catch (_e) {
+    rollback()
+  } finally {
+    delete el.dataset.pending
+  }
+
+  function rollback () {
+    el.classList.toggle("crossy-action-btn--active")
+    if (statEl && prevCount !== null) {
+      statEl.textContent = prevCount
+    }
+  }
+}
+
 document.addEventListener("turbo:load", () => {
   const selAll = document.getElementById("select-all-providers")
   const deselAll = document.getElementById("deselect-all-providers")

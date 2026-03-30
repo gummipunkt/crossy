@@ -117,4 +117,41 @@
     @apply rounded-2xl bg-gradient-to-br from-violet-300 via-purple-300 to-fuchsia-200 p-3 shadow-lg shadow-violet-400/35 ring-4 ring-white
       motion-safe:animate-[crossy-enter_0.5s_cubic-bezier(0.22,1,0.36,1)_both];
   }
+
+  .crossy-avatar {
+    @apply h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-violet-200/60 shadow-sm;
+  }
+
+  .crossy-action-btn {
+    @apply inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-600
+      min-h-[36px] min-w-[36px] justify-center
+      transition-all duration-200 ease-out
+      hover:bg-violet-50 hover:text-violet-800
+      active:scale-95;
+  }
+
+  .crossy-action-btn--active {
+    @apply text-violet-700 bg-violet-50/80 font-semibold;
+  }
+
+  .crossy-action-btn--like.crossy-action-btn--active {
+    @apply text-rose-600 bg-rose-50/80;
+  }
+
+  .crossy-action-btn--bookmark.crossy-action-btn--active {
+    @apply text-amber-600 bg-amber-50/80;
+  }
+
+  .crossy-action-btn--repost.crossy-action-btn--active {
+    @apply text-green-600 bg-green-50/80;
+  }
+
+  .crossy-stat {
+    @apply tabular-nums text-[11px] text-stone-500;
+  }
+
+  .crossy-empty-state {
+    @apply rounded-2xl border-2 border-dashed border-violet-200/80 bg-violet-50/30 p-8 sm:p-12
+      text-center text-stone-500 motion-safe:animate-[crossy-fade_0.5s_ease-out_both];
+  }
 }
