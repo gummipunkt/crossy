@@ -49,7 +49,11 @@ class PostsController < ApplicationController
   def deliveries
     @post = current_user.posts.find(params[:id])
     @deliveries = @post.deliveries.includes(:provider_account)
-    render partial: "deliveries", locals: { post: @post, deliveries: @deliveries }
+    render inline: <<~ERB, locals: { post: @post, deliveries: @deliveries }
+      <turbo-frame id="<%= dom_id(post, :deliveries) %>">
+        <%= render partial: "deliveries", locals: { post: post, deliveries: deliveries } %>
+      </turbo-frame>
+    ERB
   end
 
   private
