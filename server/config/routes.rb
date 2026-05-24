@@ -8,7 +8,16 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      resources :posts, only: [ :create, :show ] do
+      post   "auth/sign_in",  to: "auth#sign_in"
+      delete "auth/sign_out", to: "auth#sign_out"
+      get    "auth/me",       to: "auth#me"
+
+      get  "timeline",        to: "timeline#index"
+      post "timeline/action", to: "timeline#action"
+
+      resources :provider_accounts, only: [ :index, :create, :destroy ]
+
+      resources :posts, only: [ :index, :create, :show ] do
         resources :deliveries, only: [ :index ]
       end
       namespace :nostr do

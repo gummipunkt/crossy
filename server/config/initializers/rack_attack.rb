@@ -5,6 +5,10 @@ class Rack::Attack
     req.ip if req.path == "/users/sign_in" && req.post?
   end
 
+  throttle("api_logins/ip", limit: 20, period: 5.minutes) do |req|
+    req.ip if req.path == "/api/v1/auth/sign_in" && req.post?
+  end
+
   throttle("sign_up/ip", limit: 10, period: 1.hour) do |req|
     req.ip if req.path == "/users" && req.post?
   end

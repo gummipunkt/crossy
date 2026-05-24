@@ -28,6 +28,7 @@ gem "blind_index"
 gem "secure_headers"
 gem "rack", ">= 3.2.5"
 gem "rack-attack"
+gem "rack-cors"
 gem "nokogiri", ">= 1.19.1"
 gem "json", ">= 2.15.2.1"
 
