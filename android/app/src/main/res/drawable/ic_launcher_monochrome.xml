@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Monochrome layer for Android 13+ themed icons.
+  Globus-Silhouette aus dem Crossy-Logo, vereinfacht: ein Ring,
+  ein vertikaler und ein horizontaler Meridian, plus zwei innere Ellipsen.
+  Die System-Tint wird automatisch angewendet, daher fillColor weiß lassen.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer ring (stroke as filled annulus) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,21 a33,33 0 1 0 0.001,0 Z M54,28.5 a25.5,25.5 0 1 1 -0.001,0 Z" />
+
+    <!-- Equator (horizontal line, drawn as a slim filled rect) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M21,52.5 h66 v3 h-66 Z" />
+
+    <!-- Vertical meridian -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M52.5,21 h3 v66 h-3 Z" />
+
+    <!-- Left meridian ellipse outline (filled annulus, ellipse approximated by two cubics) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,21 C40,38 40,70 54,87 C42,70 42,38 54,21 Z M54,28 C45,42 45,66 54,80 C49,66 49,42 54,28 Z" />
+
+    <!-- Right meridian ellipse outline -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,21 C68,38 68,70 54,87 C66,70 66,38 54,21 Z M54,28 C63,42 63,66 54,80 C59,66 59,42 54,28 Z" />
+</vector>

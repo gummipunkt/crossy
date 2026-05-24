@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Crossy brand background (matches site.webmanifest). -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="seed">#FFD4B8</color>
+</resources>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Crossy</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Mit Server verbinden</string>
+    <string name="onboarding_subtitle">Gib die Adresse deiner Crossy-Instanz ein, z. B. https://crossy.example.com</string>
+    <string name="server_url_label">Server-URL</string>
+    <string name="continue_label">Weiter</string>
+    <string name="invalid_url">Ungültige URL</string>
+
+    <!-- Login -->
+    <string name="login_title">Anmelden</string>
+    <string name="email_label">E-Mail</string>
+    <string name="password_label">Passwort</string>
+    <string name="sign_in">Anmelden</string>
+    <string name="change_server">Server wechseln</string>
+    <string name="login_failed">Anmeldung fehlgeschlagen</string>
+
+    <!-- Bottom nav -->
+    <string name="tab_timeline">Timeline</string>
+    <string name="tab_compose">Posten</string>
+    <string name="tab_accounts">Konten</string>
+    <string name="tab_settings">Einstellungen</string>
+
+    <!-- Timeline -->
+    <string name="timeline_empty">Keine Beiträge. Verbinde unter „Konten“ ein Netzwerk und ziehe nach unten, um zu aktualisieren.</string>
+    <string name="cd_like">Gefällt mir</string>
+    <string name="cd_repost">Reposten</string>
+    <string name="cd_avatar">Profilbild</string>
+
+    <!-- Composer -->
+    <string name="composer_hint">Was möchtest du teilen?</string>
+    <string name="composer_alt_hint">Bildbeschreibung (Alt-Text)</string>
+    <string name="composer_pick_media">Bild hinzufügen</string>
+    <string name="composer_publish">Veröffentlichen</string>
+    <string name="composer_choose_providers">Netzwerke wählen</string>
+    <string name="composer_no_accounts">Du hast noch keine Konten verbunden. Lege eines unter „Konten“ an.</string>
+    <string name="composer_select_all">Alle auswählen</string>
+    <string name="composer_published">Veröffentlicht</string>
+    <string name="composer_publishing_failed">Veröffentlichen fehlgeschlagen</string>
+    <string name="composer_remove_media">Entfernen</string>
+
+    <!-- Accounts -->
+    <string name="accounts_title">Verbundene Konten</string>
+    <string name="accounts_add">Konto hinzufügen</string>
+    <string name="accounts_empty">Noch keine Konten verbunden.</string>
+    <string name="accounts_delete">Entfernen</string>
+    <string name="accounts_pick_provider">Anbieter wählen</string>
+    <string name="provider_mastodon">Mastodon</string>
+    <string name="provider_bluesky">Bluesky</string>
+    <string name="provider_threads">Threads</string>
+    <string name="provider_nostr">Nostr</string>
+    <string name="mastodon_instance">Instanz (z. B. https://mastodon.social)</string>
+    <string name="mastodon_handle">Handle</string>
+    <string name="mastodon_token">Access-Token (Scope: write:statuses)</string>
+    <string name="bluesky_handle">Handle (z. B. you.bsky.social)</string>
+    <string name="bluesky_app_password">App-Passwort</string>
+    <string name="threads_via_browser">Threads wird im Browser über /auth/threads verbunden.</string>
+    <string name="open_in_browser">Im Browser öffnen</string>
+    <string name="connect">Verbinden</string>
+
+    <!-- Settings -->
+    <string name="settings_server">Server</string>
+    <string name="settings_signed_in_as">Angemeldet als</string>
+    <string name="sign_out">Abmelden</string>
+    <string name="about">Crossy ist ein kleines Tool, um in mehrere soziale Netzwerke gleichzeitig zu posten.</string>
+
+    <string name="error_generic">Etwas ist schiefgelaufen</string>
+    <string name="retry">Erneut versuchen</string>
+</resources>
