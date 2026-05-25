@@ -3,13 +3,17 @@ package de.gummipunkt.crossy.ui.composer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.AssistChip
@@ -36,6 +41,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +52,7 @@ import de.gummipunkt.crossy.data.AppContainer
 import de.gummipunkt.crossy.ui.common.SharedContentHolder
 import de.gummipunkt.crossy.ui.common.rememberAppViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ComposerScreen() {
     val vm = rememberAppViewModel { container: AppContainer ->
@@ -59,6 +67,17 @@ fun ComposerScreen() {
         }
     }
 
+    // Nach dem erfolgreichen Senden Fokus + Tastatur wegblenden,
+    // damit man die Delivery-Badges und „Veröffentlicht" sieht.
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(state.published) {
+        if (state.published) {
+            keyboardController?.hide()
+            focusManager.clearFocus(force = true)
+        }
+    }
+
     val pickMedia = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
     ) { uris ->
@@ -68,9 +87,14 @@ fun ComposerScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .imePadding()
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
         OutlinedTextField(
             value = state.text,
             onValueChange = vm::updateText,
@@ -148,17 +172,36 @@ fun ComposerScreen() {
                 Spacer(Modifier.height(8.dp))
                 AssistChip(
                     onClick = vm::toggleAll,
-                    label = { Text(stringResource(R.string.composer_select_all)) }
+                    label = {
+                        Text(
+                            stringResource(
+                                if (state.allSelected) R.string.composer_deselect_all
+                                else R.string.composer_select_all
+                            )
+                        )
+                    }
                 )
                 Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     state.providers.forEach { pa ->
+                        val selected = pa.id in state.selectedProviderIds
                         FilterChip(
-                            selected = pa.id in state.selectedProviderIds,
+                            selected = selected,
                             onClick = { vm.toggleProvider(pa.id) },
-                            label = { Text("${pa.provider}: ${pa.handle ?: ""}") }
+                            label = { Text("${pa.provider}: ${pa.handle ?: ""}") },
+                            leadingIcon = if (selected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else null
                         )
                     }
                 }
@@ -174,19 +217,47 @@ fun ComposerScreen() {
             )
         }
         if (state.published) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.composer_published),
+                text = "✓ " + stringResource(R.string.composer_published),
                 color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.titleMedium
             )
+            if (state.deliveries.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.composer_deliveries),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(Modifier.height(4.dp))
+                state.deliveries.forEach { d ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = d.provider + (d.handle?.let { " · $it" } ?: ""),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DeliveryStatusBadge(d.status)
+                    }
+                }
+            }
         }
 
-        Spacer(Modifier.height(16.dp))
+        } // inner scroll column
+
+        // Publish-Button fest am unteren Rand, immer sichtbar — auch bei
+        // offener Tastatur (dank imePadding am äußeren Column).
         Button(
             onClick = vm::submit,
-            enabled = !state.submitting && state.providers.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth()
+            enabled = !state.submitting && state.providers.isNotEmpty() && state.text.isNotBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             if (state.submitting) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -195,4 +266,31 @@ fun ComposerScreen() {
             }
         }
     }
+}
+
+@Composable
+private fun DeliveryStatusBadge(status: String) {
+    val (label, bg) = when (status) {
+        "succeeded"           -> "ok"        to MaterialTheme.colorScheme.primary
+        "in_progress"         -> "läuft"     to MaterialTheme.colorScheme.tertiary
+        "queued"              -> "wartet"    to MaterialTheme.colorScheme.secondary
+        "awaiting_signature"  -> "signieren" to MaterialTheme.colorScheme.secondary
+        "failed"              -> "Fehler"    to MaterialTheme.colorScheme.error
+        else                  -> status      to MaterialTheme.colorScheme.secondary
+    }
+    val onBg = when (status) {
+        "succeeded"  -> MaterialTheme.colorScheme.onPrimary
+        "failed"     -> MaterialTheme.colorScheme.onError
+        "in_progress" -> MaterialTheme.colorScheme.onTertiary
+        else         -> MaterialTheme.colorScheme.onSecondary
+    }
+    Text(
+        text = label,
+        color = onBg,
+        style = MaterialTheme.typography.labelSmall,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    )
 }

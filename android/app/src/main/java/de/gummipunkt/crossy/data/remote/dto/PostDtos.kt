@@ -20,3 +20,8 @@ data class CreatePostResponse(
     @SerialName("content_text") val contentText: String,
     val deliveries: List<DeliveryDto> = emptyList()
 )
+
+@Serializable
+data class DeliveriesResponse(
+    val deliveries: List<DeliveryDto> = emptyList()
+)

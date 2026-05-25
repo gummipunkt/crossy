@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +43,7 @@ import de.gummipunkt.crossy.data.AppContainer
 import de.gummipunkt.crossy.data.remote.dto.TimelineItemDto
 import de.gummipunkt.crossy.ui.common.rememberAppViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen() {
     val vm = rememberAppViewModel { container: AppContainer ->

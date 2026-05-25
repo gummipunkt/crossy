@@ -5,6 +5,7 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import de.gummipunkt.crossy.data.remote.NetworkProvider
 import de.gummipunkt.crossy.data.remote.dto.CreatePostResponse
+import de.gummipunkt.crossy.data.remote.dto.DeliveryDto
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -52,6 +53,10 @@ class PostsRepository(
             providerAccountIds = providerParts,
             files = fileParts
         )
+    }
+
+    suspend fun fetchDeliveries(postId: Long): Result<List<DeliveryDto>> = runCatching {
+        network.api.deliveries(postId).deliveries
     }
 
     private fun readMedia(uri: Uri): Triple<ByteArray, String, String> {

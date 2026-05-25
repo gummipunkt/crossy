@@ -1,6 +1,7 @@
 package de.gummipunkt.crossy.data.remote
 
 import de.gummipunkt.crossy.data.remote.dto.CreatePostResponse
+import de.gummipunkt.crossy.data.remote.dto.DeliveriesResponse
 import de.gummipunkt.crossy.data.remote.dto.MeResponse
 import de.gummipunkt.crossy.data.remote.dto.ProviderAccountResponse
 import de.gummipunkt.crossy.data.remote.dto.ProviderAccountsResponse
@@ -66,6 +67,9 @@ interface CrossyApi {
 
     @DELETE("api/v1/provider_accounts/{id}")
     suspend fun deleteProviderAccount(@Path("id") id: Long): Response<Unit>
+
+    @GET("api/v1/posts/{post_id}/deliveries")
+    suspend fun deliveries(@Path("post_id") postId: Long): DeliveriesResponse
 
     @Multipart
     @POST("api/v1/posts")

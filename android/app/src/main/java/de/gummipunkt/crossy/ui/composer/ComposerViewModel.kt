@@ -3,12 +3,16 @@ package de.gummipunkt.crossy.ui.composer
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.gummipunkt.crossy.data.remote.dto.DeliveryDto
 import de.gummipunkt.crossy.data.remote.dto.ProviderAccountDto
 import de.gummipunkt.crossy.data.repository.MediaUpload
 import de.gummipunkt.crossy.data.repository.PostsRepository
 import de.gummipunkt.crossy.data.repository.ProviderAccountsRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class MediaDraft(val uri: Uri, val alt: String = "")
@@ -21,8 +25,12 @@ data class ComposerState(
     val loadingProviders: Boolean = true,
     val submitting: Boolean = false,
     val error: String? = null,
-    val published: Boolean = false
-)
+    val published: Boolean = false,
+    val deliveries: List<DeliveryDto> = emptyList()
+) {
+    val allSelected: Boolean
+        get() = providers.isNotEmpty() && selectedProviderIds.size == providers.size
+}
 
 class ComposerViewModel(
     private val postsRepository: PostsRepository,
@@ -31,6 +39,14 @@ class ComposerViewModel(
 
     private val _state = MutableStateFlow(ComposerState())
     val state: StateFlow<ComposerState> = _state
+
+    private var pollJob: Job? = null
+
+    private companion object {
+        val TERMINAL_STATUSES = setOf("succeeded", "failed", "awaiting_signature")
+        const val POLL_INTERVAL_MS = 1_500L
+        const val POLL_TIMEOUT_MS = 30_000L
+    }
 
     init {
         loadProviders()
@@ -63,7 +79,15 @@ class ComposerViewModel(
     }
 
     fun updateText(value: String) {
-        _state.value = _state.value.copy(text = value, error = null, published = false)
+        // Sobald der Nutzer wieder tippt, ist der vorherige Erfolg
+        // Geschichte — Banner + Delivery-Liste ausblenden und Polling stoppen.
+        if (value.isNotBlank()) pollJob?.cancel()
+        _state.value = _state.value.copy(
+            text = value,
+            error = null,
+            published = false,
+            deliveries = if (value.isBlank()) _state.value.deliveries else emptyList()
+        )
     }
 
     fun toggleProvider(id: Long) {
@@ -109,12 +133,18 @@ class ComposerViewModel(
                 providerAccountIds = current.selectedProviderIds.toList(),
                 media = current.media.map { MediaUpload(it.uri, it.alt) }
             )
-                .onSuccess {
-                    _state.value = ComposerState(
-                        providers = current.providers,
-                        selectedProviderIds = current.selectedProviderIds,
-                        published = true
+                .onSuccess { response ->
+                    // Felder zurücksetzen, aber Provider-Liste + Auswahl
+                    // beibehalten und Deliveries anzeigen.
+                    _state.value = current.copy(
+                        text = "",
+                        media = emptyList(),
+                        submitting = false,
+                        error = null,
+                        published = true,
+                        deliveries = response.deliveries
                     )
+                    startPolling(response.id)
                 }
                 .onFailure { e ->
                     _state.value = _state.value.copy(
@@ -123,5 +153,30 @@ class ComposerViewModel(
                     )
                 }
         }
+    }
+
+    private fun startPolling(postId: Long) {
+        pollJob?.cancel()
+        pollJob = viewModelScope.launch {
+            val start = System.currentTimeMillis()
+            while (isActive && System.currentTimeMillis() - start < POLL_TIMEOUT_MS) {
+                delay(POLL_INTERVAL_MS)
+                postsRepository.fetchDeliveries(postId)
+                    .onSuccess { deliveries ->
+                        // Polling nur weiterführen, wenn der User noch auf der
+                        // gleichen veröffentlichten Ansicht ist.
+                        if (!_state.value.published) return@launch
+                        _state.value = _state.value.copy(deliveries = deliveries)
+                        if (deliveries.isNotEmpty() && deliveries.all { it.status in TERMINAL_STATUSES }) {
+                            return@launch
+                        }
+                    }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        pollJob?.cancel()
+        super.onCleared()
     }
 }

@@ -37,7 +37,10 @@
     <string name="composer_choose_providers">Netzwerke wählen</string>
     <string name="composer_no_accounts">Du hast noch keine Konten verbunden. Lege eines unter „Konten“ an.</string>
     <string name="composer_select_all">Alle auswählen</string>
+    <string name="composer_deselect_all">Alle abwählen</string>
     <string name="composer_published">Veröffentlicht</string>
+    <string name="composer_deliveries">Status pro Netzwerk</string>
+    <string name="composer_new_post">Neuer Post</string>
     <string name="composer_publishing_failed">Veröffentlichen fehlgeschlagen</string>
     <string name="composer_remove_media">Entfernen</string>
 
