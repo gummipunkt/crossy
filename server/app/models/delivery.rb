@@ -1,6 +1,7 @@
 class Delivery < ApplicationRecord
   belongs_to :post
   belongs_to :provider_account
+  has_many :replies, class_name: "DeliveryReply", dependent: :delete_all
 
   # Rails 8 Enum-Syntax (string-backed)
   enum :status, {
@@ -12,4 +13,15 @@ class Delivery < ApplicationRecord
   }, validate: true
 
   validates :status, presence: true
+
+  METRICS_STALE_AFTER = 5.minutes
+
+  def metrics_stale?
+    metrics_fetched_at.nil? || metrics_fetched_at < METRICS_STALE_AFTER.ago
+  end
+
+  def engagement_syncable?
+    succeeded? && provider_post_id.present? &&
+      %w[mastodon bluesky threads].include?(provider_account.provider)
+  end
 end

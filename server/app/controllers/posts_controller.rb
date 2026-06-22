@@ -42,13 +42,15 @@ class PostsController < ApplicationController
 
   def show
     @post = current_user.posts.find(params[:id])
-    @deliveries = @post.deliveries.includes(:provider_account)
+    @deliveries = @post.deliveries.includes(:provider_account, :replies)
     @nostr_accounts = current_user.provider_accounts.where(provider: "nostr").order(:handle)
+
+    enqueue_engagement_sync_if_stale(@deliveries)
   end
 
   def deliveries
     @post = current_user.posts.find(params[:id])
-    @deliveries = @post.deliveries.includes(:provider_account)
+    @deliveries = @post.deliveries.includes(:provider_account, :replies)
     render inline: <<~ERB, locals: { post: @post, deliveries: @deliveries }
       <turbo-frame id="<%= dom_id(post, :deliveries) %>">
         <%= render partial: "deliveries", locals: { post: post, deliveries: deliveries } %>
@@ -56,9 +58,23 @@ class PostsController < ApplicationController
     ERB
   end
 
+  def refresh_engagement
+    @post = current_user.posts.find(params[:id])
+    deliveries = @post.deliveries.includes(:provider_account).select(&:engagement_syncable?)
+    deliveries.each { |d| SyncDeliveryEngagementJob.perform_later(d.id) }
+    redirect_to @post, notice: "Engagement-Sync für #{deliveries.size} Netzwerk(e) gestartet."
+  end
+
   private
 
   def post_params
     params.require(:post).permit(:content_text, :content_warning)
+  end
+
+  def enqueue_engagement_sync_if_stale(deliveries)
+    deliveries.each do |d|
+      next unless d.engagement_syncable? && d.metrics_stale?
+      SyncDeliveryEngagementJob.perform_later(d.id)
+    end
   end
 end

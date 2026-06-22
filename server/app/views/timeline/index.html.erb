@@ -16,7 +16,7 @@
       <div class="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-stone-800 break-words"><%= p.content_text %></div>
       <div class="mt-4 flex flex-wrap gap-2">
         <% p.deliveries.each do |d| %>
-          <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border <%= 
+          <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border <%=
             case d.provider_account.provider
             when "mastodon" then "border-green-200/90 bg-green-100/80 text-green-900"
             when "bluesky" then "border-sky-200/90 bg-sky-100/80 text-sky-900"
@@ -29,7 +29,29 @@
           </span>
         <% end %>
       </div>
-      <div class="mt-4 text-right">
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-3 text-xs text-stone-700">
+          <span class="inline-flex items-center gap-1" title="Likes (alle Netzwerke)">
+            <span aria-hidden="true">♥</span>
+            <span class="font-semibold tabular-nums"><%= p.total_like_count %></span>
+            <span class="sr-only">Likes gesamt</span>
+          </span>
+          <span class="inline-flex items-center gap-1" title="Antworten (alle Netzwerke)">
+            <span aria-hidden="true">💬</span>
+            <span class="font-semibold tabular-nums"><%= p.total_reply_count %></span>
+            <span class="sr-only">Antworten gesamt</span>
+          </span>
+          <span class="inline-flex items-center gap-1" title="Reposts/Reblogs (alle Netzwerke)">
+            <span aria-hidden="true">🔁</span>
+            <span class="font-semibold tabular-nums"><%= p.total_repost_count %></span>
+            <span class="sr-only">Reposts gesamt</span>
+          </span>
+          <% if (last = p.engagement_last_synced_at) %>
+            <span class="text-[11px] text-stone-500" title="<%= l(last, format: :long) rescue last %>">
+              · aktualisiert <%= time_ago_in_words(last) %> her
+            </span>
+          <% end %>
+        </div>
         <%= link_to "Details", post_path(p), class: "crossy-link text-sm" %>
       </div>
     </article>

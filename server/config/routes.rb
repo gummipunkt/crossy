@@ -41,6 +41,7 @@ Rails.application.routes.draw do
   resources :posts, only: [ :new, :create, :show ] do
     member do
       get :deliveries
+      post :refresh_engagement
     end
   end
   root to: "posts#new"

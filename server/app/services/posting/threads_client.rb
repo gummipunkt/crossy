@@ -113,7 +113,15 @@ module Posting
         Rails.logger.warn("Threads publish step failed for creation_id=#{creation_id}: #{publish_resp&.status} #{publish_resp&.body}")
       end
 
-      creation_id
+      # Prefer the published media id from the publish response; fall back to
+      # the creation_id only if we couldn't parse one (insights/replies endpoints
+      # require the media id, not the container id).
+      published_id = nil
+      if publish_ok && publish_resp&.success?
+        published_body = (JSON.parse(publish_resp.body) rescue {})
+        published_id = published_body["id"]
+      end
+      published_id.presence || creation_id
     end
 
     private

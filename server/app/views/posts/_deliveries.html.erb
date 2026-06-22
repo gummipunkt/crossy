@@ -19,7 +19,41 @@
       <% if d.error_message.present? %>
         <div class="text-xs text-rose-900 mt-3 rounded-md bg-rose-50 px-2 py-1.5 border border-rose-100">Error: <%= d.error_message %></div>
       <% end %>
+
+      <% if d.engagement_syncable? || d.metrics_fetched_at.present? %>
+        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-stone-700">
+          <span class="inline-flex items-center gap-1" title="Likes">
+            <span aria-hidden="true">♥</span>
+            <span class="font-semibold tabular-nums"><%= d.like_count %></span>
+            <span class="sr-only">Likes</span>
+          </span>
+          <span class="inline-flex items-center gap-1" title="Replies">
+            <span aria-hidden="true">💬</span>
+            <span class="font-semibold tabular-nums"><%= d.reply_count %></span>
+            <span class="sr-only">Replies</span>
+          </span>
+          <span class="inline-flex items-center gap-1" title="Reposts/Reblogs">
+            <span aria-hidden="true">🔁</span>
+            <span class="font-semibold tabular-nums"><%= d.repost_count %></span>
+            <span class="sr-only">Reposts</span>
+          </span>
+          <% if d.metrics_fetched_at.present? %>
+            <span class="text-[11px] text-stone-500" title="<%= l(d.metrics_fetched_at, format: :long) rescue d.metrics_fetched_at %>">
+              · aktualisiert <%= time_ago_in_words(d.metrics_fetched_at) %> her
+            </span>
+          <% else %>
+            <span class="text-[11px] text-stone-500">· wird synchronisiert …</span>
+          <% end %>
+        </div>
+        <% if d.metrics_error.present? %>
+          <div class="mt-2 text-[11px] text-amber-900 rounded-md bg-amber-50 px-2 py-1 border border-amber-100" title="<%= d.metrics_error %>">
+            Engagement-Sync fehlgeschlagen
+          </div>
+        <% end %>
+        <% if d.replies.any? %>
+          <%= render partial: "posts/replies", locals: { replies: d.replies } %>
+        <% end %>
+      <% end %>
     </div>
   <% end %>
 </div>
-
