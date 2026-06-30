@@ -33,7 +33,7 @@ gem "nokogiri", ">= 1.19.1"
 gem "json", ">= 2.15.2.1"
 
 # HTTP Client
-gem "faraday", ">= 2.14.1"
+gem "faraday", ">= 2.14.3"
 gem "faraday-multipart"
 gem "websocket-client-simple"
 
