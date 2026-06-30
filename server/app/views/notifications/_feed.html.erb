@@ -1,0 +1,16 @@
+<turbo-frame id="notifications-feed">
+  <% if items.empty? %>
+    <div class="crossy-card-muted text-center text-sm text-stone-600">
+      Noch keine Notifications. Sobald jemand auf einem deiner Posts reagiert, taucht es hier auf.
+    </div>
+  <% else %>
+    <ul class="space-y-3">
+      <% items.each do |item| %>
+        <%= render partial: "notifications/item", locals: { item: item } %>
+      <% end %>
+    </ul>
+    <p class="mt-4 text-center text-[11px] text-stone-400">
+      Aktualisiert <%= time_ago_in_words(Time.current) %> her · zeigt die letzten <%= items.size %> Ereignisse
+    </p>
+  <% end %>
+</turbo-frame>

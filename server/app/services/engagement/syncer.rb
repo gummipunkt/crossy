@@ -40,6 +40,8 @@ module Engagement
           metrics_error: nil
         )
         upsert_replies(result.replies || [])
+        upsert_reactions(kind: "like",   incoming: result.likers || [])
+        upsert_reactions(kind: "repost", incoming: result.reposters || [])
       end
     end
 
@@ -59,8 +61,30 @@ module Engagement
         )
         reply.save!
       end
-      # Drop replies that have been deleted upstream
       @delivery.replies.where.not(remote_id: seen_remote_ids).delete_all if seen_remote_ids.any?
+    end
+
+    # If the fetcher returned an empty list for this kind, treat it as "no data" and
+    # leave existing rows alone (so a one-off API failure doesn't wipe history).
+    # Only prune when the fetcher returned a non-empty list and we know what's current.
+    def upsert_reactions(kind:, incoming:)
+      return if incoming.empty?
+
+      seen_remote_ids = []
+      incoming.each do |attrs|
+        next if attrs[:remote_id].blank?
+        seen_remote_ids << attrs[:remote_id]
+        reaction = @delivery.reactions.find_or_initialize_by(kind: kind, remote_id: attrs[:remote_id])
+        reaction.assign_attributes(
+          author_handle:     attrs[:author_handle],
+          author_name:       attrs[:author_name],
+          author_avatar_url: attrs[:author_avatar_url],
+          author_url:        attrs[:author_url],
+          reacted_at:        attrs[:reacted_at]
+        )
+        reaction.save!
+      end
+      @delivery.reactions.where(kind: kind).where.not(remote_id: seen_remote_ids).delete_all
     end
   end
 end

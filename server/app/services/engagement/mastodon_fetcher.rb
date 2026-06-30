@@ -3,6 +3,8 @@ require "json"
 
 module Engagement
   class MastodonFetcher
+    ACCOUNTS_LIMIT = 40 # mastodon max per page
+
     def initialize(delivery)
       @delivery = delivery
       @account  = delivery.provider_account
@@ -17,18 +19,22 @@ module Engagement
       status_id = @delivery.provider_post_id
       conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
 
-      status = get_json!(conn, "/api/v1/statuses/#{status_id}", token)
+      status  = get_json!(conn, "/api/v1/statuses/#{status_id}", token)
       context = get_json!(conn, "/api/v1/statuses/#{status_id}/context", token)
+      likers_raw   = safe_json(conn, "/api/v1/statuses/#{status_id}/favourited_by?limit=#{ACCOUNTS_LIMIT}", token) || []
+      reposters_raw = safe_json(conn, "/api/v1/statuses/#{status_id}/reblogged_by?limit=#{ACCOUNTS_LIMIT}", token) || []
 
       replies = Array(context["descendants"])
         .select { |s| s["in_reply_to_id"].to_s == status_id.to_s }
-        .map { |s| normalize(s) }
+        .map { |s| normalize_reply(s) }
 
       Engagement::Result.new(
         like_count:   status["favourites_count"].to_i,
         reply_count:  status["replies_count"].to_i,
         repost_count: status["reblogs_count"].to_i,
-        replies: replies
+        replies:   replies,
+        likers:    likers_raw.map { |a| normalize_account(a) },
+        reposters: reposters_raw.map { |a| normalize_account(a) }
       )
     end
 
@@ -45,7 +51,14 @@ module Engagement
       JSON.parse(resp.body)
     end
 
-    def normalize(status)
+    def safe_json(conn, path, token)
+      get_json!(conn, path, token)
+    rescue => e
+      Rails.logger.warn("[Engagement::MastodonFetcher] #{path} failed: #{e.message}")
+      nil
+    end
+
+    def normalize_reply(status)
       acc = status["account"] || {}
       {
         remote_id: status["id"].to_s,
@@ -55,6 +68,17 @@ module Engagement
         content: strip_html(status["content"].to_s),
         posted_at: (Time.parse(status["created_at"]) rescue nil),
         permalink: status["url"]
+      }
+    end
+
+    def normalize_account(acc)
+      {
+        remote_id: acc["id"].to_s,
+        author_handle: acc["acct"] || acc["username"],
+        author_name: acc["display_name"].presence,
+        author_avatar_url: acc["avatar"],
+        author_url: acc["url"],
+        reacted_at: nil # Mastodon doesn't expose per-fav timestamps
       }
     end
 

@@ -1,0 +1,37 @@
+<%
+  # Reusable engagement counter row.
+  # Locals:
+  #   like_count, reply_count, repost_count : Integer (default 0)
+  #   synced_at : DateTime or nil
+  #   error : String or nil
+  #   size : :sm (default) or :md
+  size ||= :sm
+  text_size = size == :md ? "text-sm" : "text-xs"
+%>
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 <%= text_size %> text-stone-700">
+  <span class="inline-flex items-center gap-1.5" title="Likes">
+    <span aria-hidden="true" class="text-rose-500">♥</span>
+    <span class="font-semibold tabular-nums"><%= like_count.to_i %></span>
+    <span class="sr-only">Likes</span>
+  </span>
+  <span class="inline-flex items-center gap-1.5" title="Antworten">
+    <span aria-hidden="true" class="text-violet-500">💬</span>
+    <span class="font-semibold tabular-nums"><%= reply_count.to_i %></span>
+    <span class="sr-only">Antworten</span>
+  </span>
+  <span class="inline-flex items-center gap-1.5" title="Reposts">
+    <span aria-hidden="true" class="text-emerald-500">🔁</span>
+    <span class="font-semibold tabular-nums"><%= repost_count.to_i %></span>
+    <span class="sr-only">Reposts</span>
+  </span>
+  <% if defined?(synced_at) && synced_at.present? %>
+    <span class="text-[11px] text-stone-500" title="<%= l(synced_at, format: :long) rescue synced_at %>">
+      · aktualisiert <%= time_ago_in_words(synced_at) %> her
+    </span>
+  <% end %>
+  <% if defined?(error) && error.present? %>
+    <span class="text-[11px] text-amber-900 rounded-md bg-amber-50 px-2 py-0.5 border border-amber-100" title="<%= error %>">
+      Sync-Fehler
+    </span>
+  <% end %>
+</div>

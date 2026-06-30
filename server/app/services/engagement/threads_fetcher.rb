@@ -23,11 +23,15 @@ module Engagement
       counts  = fetch_insights(conn, media_id, token, app_id)
       replies = fetch_replies(conn, media_id, token, app_id)
 
+      # Threads Graph API does not expose individual likers or reposters as of
+      # 2026; only aggregate counts. Leave likers/reposters empty.
       Engagement::Result.new(
         like_count:   counts[:likes],
         reply_count:  counts[:replies] || replies.size,
         repost_count: counts[:reposts],
-        replies: replies
+        replies:   replies,
+        likers:    [],
+        reposters: []
       )
     end
 

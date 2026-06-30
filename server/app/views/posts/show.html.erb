@@ -8,11 +8,11 @@
   <% end %>
 </div>
 
-<div class="mt-8 flex items-baseline justify-between gap-3">
+<div class="mt-8 flex items-center justify-between gap-3 flex-wrap">
   <h2 class="font-display text-xl font-semibold text-stone-900">Deliveries</h2>
-  <%= button_to "Engagement neu laden", refresh_engagement_post_path(@post),
+  <%= button_to "Engagement aktualisieren", refresh_engagement_post_path(@post),
         method: :post, data: { turbo_frame: "_top" },
-        class: "crossy-btn-secondary text-xs" %>
+        class: "crossy-btn-secondary" %>
 </div>
 <turbo-frame id="<%= dom_id(@post, :deliveries) %>" src="<%= deliveries_post_path(@post) %>" data-deliveries-frame="true" loading="lazy">
   <%= render partial: "deliveries", locals: { post: @post, deliveries: @deliveries } %>

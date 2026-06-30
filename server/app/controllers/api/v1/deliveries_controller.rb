@@ -1,21 +1,13 @@
 module Api
   module V1
     class DeliveriesController < BaseController
+      include Api::V1::Payloads
+
       def index
         post = current_user.posts.find(params[:post_id])
-        render json: {
-          deliveries: post.deliveries.includes(:provider_account).map { |d|
-            {
-              id: d.id,
-              provider: d.provider_account.provider,
-              handle: d.provider_account.handle,
-              status: d.status,
-              provider_post_id: d.provider_post_id,
-              error_message: d.error_message,
-              finished_at: d.finished_at&.iso8601
-            }
-          }
-        }
+        deliveries = post.deliveries.includes(:provider_account, :replies, :reactions)
+        enqueue_engagement_sync_if_stale(deliveries)
+        render json: { deliveries: deliveries.map { |d| delivery_payload(d, include_engagement: true) } }
       end
     end
   end

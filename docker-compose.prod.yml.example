@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: crossy
       POSTGRES_PASSWORD: crossy
@@ -14,6 +15,7 @@ services:
       retries: 10
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     volumes:
       - redis-data:/data
@@ -25,6 +27,7 @@ services:
 
   web:
     build: .
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -66,11 +69,45 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-    command: >-
-      bash -lc "bundle install --jobs 4 && rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile && bin/rails server -e production -b 0.0.0.0 -p 3000"
+    # Wait for db/redis on every (re)start — `depends_on` only enforces order on the
+    # initial `compose up`, not on auto-restarts via `restart: unless-stopped`.
+    command:
+      - bash
+      - -lc
+      - |
+        set -o pipefail
+        log() { echo "[$$(date -Is)] web: $$*"; }
+        wait_for_tcp() {
+          local host=$$1 port=$$2 max=$${3:-120} i=0
+          until (echo > /dev/tcp/$$host/$$port) 2>/dev/null; do
+            i=$$((i+1))
+            if [ $$i -ge $$max ]; then log "timeout waiting for $$host:$$port"; return 1; fi
+            if [ $$((i % 5)) -eq 1 ]; then log "waiting for $$host:$$port (attempt $$i/$$max)"; fi
+            sleep 2
+          done
+          log "$$host:$$port reachable"
+        }
+        log "boot: waiting for dependencies"
+        wait_for_tcp db 5432 150    || { log "db unreachable, exiting for restart"; exit 1; }
+        wait_for_tcp redis 6379 60  || { log "redis unreachable, exiting for restart"; exit 1; }
+        log "boot: bundle install"
+        bundle install --jobs 4 || { ec=$$?; log "bundle install failed (exit=$$ec)"; exit $$ec; }
+        rm -f tmp/pids/server.pid
+        log "boot: db:prepare"
+        bin/rails db:prepare || { ec=$$?; log "db:prepare failed (exit=$$ec)"; exit $$ec; }
+        log "boot: assets"
+        bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile
+        log "boot: starting puma"
+        bin/rails server -e production -b 0.0.0.0 -p 3000
 
   worker:
     build: .
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       db:
         condition: service_healthy
@@ -102,13 +139,41 @@ services:
       THREADS_OAUTH_BASE: ${THREADS_OAUTH_BASE:-https://www.threads.net}
       BLUESKY_BASE: ${BLUESKY_BASE:-https://bsky.social}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://crossy.example.tld}
-    command: >-
-      bash -lc "bundle install --jobs 4 && bin/rails db:prepare && bin/rails solid_queue:start"
+    # Wait for db/redis on every (re)start — `depends_on` only enforces order on the
+    # initial `compose up`, not on auto-restarts via `restart: unless-stopped`.
+    command:
+      - bash
+      - -lc
+      - |
+        set -o pipefail
+        log() { echo "[$$(date -Is)] worker: $$*"; }
+        trap 'log "received SIGTERM"' TERM
+        trap 'log "received SIGINT"'  INT
+        wait_for_tcp() {
+          local host=$$1 port=$$2 max=$${3:-120} i=0
+          until (echo > /dev/tcp/$$host/$$port) 2>/dev/null; do
+            i=$$((i+1))
+            if [ $$i -ge $$max ]; then log "timeout waiting for $$host:$$port"; return 1; fi
+            if [ $$((i % 5)) -eq 1 ]; then log "waiting for $$host:$$port (attempt $$i/$$max)"; fi
+            sleep 2
+          done
+          log "$$host:$$port reachable"
+        }
+        log "boot: waiting for dependencies"
+        wait_for_tcp db 5432 150    || { log "db unreachable, exiting for restart"; exit 1; }
+        wait_for_tcp redis 6379 60  || { log "redis unreachable, exiting for restart"; exit 1; }
+        log "boot: bundle install"
+        bundle install --jobs 4 || { ec=$$?; log "bundle install failed (exit=$$ec)"; exit $$ec; }
+        log "boot: db:prepare"
+        bin/rails db:prepare        || { ec=$$?; log "db:prepare failed (exit=$$ec)"; exit $$ec; }
+        log "boot: starting solid_queue"
+        bin/rails solid_queue:start
+        ec=$$?
+        log "solid_queue:start exited (exit=$$ec)"
+        exit $$ec
 
 volumes:
   db-data:
   redis-data:
   bundle-data:
   storage:
-
-

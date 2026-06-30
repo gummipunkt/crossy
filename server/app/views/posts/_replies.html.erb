@@ -1,17 +1,21 @@
-<div class="mt-3 border-t border-stone-200/70 pt-3 space-y-3">
-  <div class="text-[11px] uppercase tracking-wide font-semibold text-stone-500">
-    Antworten (<%= replies.size %>)
+<div class="mt-3 pt-3 border-t border-violet-100/60">
+  <div class="text-[11px] uppercase tracking-wide font-semibold text-stone-500 mb-2">
+    Antworten · <span class="tabular-nums"><%= replies.size %></span>
   </div>
   <ul class="space-y-2">
     <% replies.sort_by { |r| r.posted_at || Time.at(0) }.reverse.each do |r| %>
-      <li class="rounded-lg bg-white/70 border border-stone-200/70 px-3 py-2">
+      <li class="rounded-xl bg-white/70 border border-violet-100/60 px-3 py-2.5">
         <div class="flex items-center gap-2 text-xs text-stone-600">
           <% if r.author_avatar_url.present? %>
-            <img src="<%= r.author_avatar_url %>" alt="" loading="lazy" class="h-5 w-5 rounded-full object-cover border border-stone-200" />
+            <img src="<%= r.author_avatar_url %>" alt="" loading="lazy" class="h-6 w-6 rounded-full object-cover border border-stone-200" />
+          <% else %>
+            <div class="h-6 w-6 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-[10px] font-semibold text-stone-500">
+              <%= (r.author_name.presence || r.author_handle.to_s)[0,1].upcase %>
+            </div>
           <% end %>
-          <span class="font-semibold text-stone-800"><%= r.author_name.presence || r.author_handle %></span>
+          <span class="font-semibold text-stone-800 truncate max-w-[12rem]"><%= r.author_name.presence || r.author_handle %></span>
           <% if r.author_name.present? && r.author_handle.present? %>
-            <span class="text-stone-500">@<%= r.author_handle %></span>
+            <span class="text-stone-500 truncate max-w-[8rem]">@<%= r.author_handle %></span>
           <% end %>
           <% if r.posted_at.present? %>
             <span class="text-stone-400" title="<%= l(r.posted_at, format: :long) rescue r.posted_at %>">
@@ -21,8 +25,8 @@
         </div>
         <div class="mt-1 text-sm text-stone-800 whitespace-pre-line break-words"><%= r.content %></div>
         <% if r.permalink.present? %>
-          <div class="mt-1 text-[11px]">
-            <a href="<%= r.permalink %>" target="_blank" rel="noopener noreferrer" class="text-violet-700 hover:underline">Original ansehen</a>
+          <div class="mt-1">
+            <a href="<%= r.permalink %>" target="_blank" rel="noopener noreferrer" class="crossy-link text-[11px]">Original ansehen</a>
           </div>
         <% end %>
       </li>
