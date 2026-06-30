@@ -1,0 +1,14 @@
+<% content_for :title, "Notifications" %>
+
+<div class="mb-6">
+  <h1 class="crossy-page-title">Notifications</h1>
+  <p class="mt-1 text-sm text-stone-600">Antworten, Likes und Reposts aus allen verbundenen Netzwerken — alle 30 s automatisch aktualisiert.</p>
+</div>
+
+<div data-controller="poll"
+     data-poll-interval-value="30000"
+     data-poll-target-id="notifications-feed">
+  <turbo-frame id="notifications-feed" src="<%= notifications_path %>" loading="lazy">
+    <%= render partial: "feed", locals: { items: @items } %>
+  </turbo-frame>
+</div>

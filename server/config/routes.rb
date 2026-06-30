@@ -19,7 +19,13 @@ Rails.application.routes.draw do
 
       resources :posts, only: [ :index, :create, :show ] do
         resources :deliveries, only: [ :index ]
+        member do
+          post :refresh_engagement
+        end
       end
+
+      get "notifications", to: "notifications#index"
+
       namespace :nostr do
         post :prepare_event
         post :publish
@@ -37,6 +43,9 @@ Rails.application.routes.draw do
   # Aggregated Timeline
   get "/timeline", to: "feeds#index"
   post "/timeline/action", to: "feeds#interact"
+
+  # Notifications feed (auto-polled via turbo-frame)
+  get "/notifications", to: "notifications#index", as: :notifications
 
   resources :posts, only: [ :new, :create, :show ] do
     member do

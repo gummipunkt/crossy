@@ -40,6 +40,7 @@
             <%= link_to "Composer", root_path, class: nav_pill_class(composer_nav_active?) %>
             <%= link_to "Timeline", "/timeline", class: nav_pill_class(timeline_nav_active?) %>
             <%= link_to "My Posts", "/my", class: nav_pill_class(my_posts_nav_active?) %>
+            <%= link_to "Notifications", notifications_path, class: nav_pill_class(notifications_nav_active?) %>
             <%= link_to "Networks", provider_accounts_path, class: nav_pill_class(networks_nav_active?) %>
             <% if current_user&.admin? %>
               <%= link_to "Admin", admin_users_path, class: nav_pill_class(admin_nav_active?) %>

@@ -1,9 +1,14 @@
 module Api
   module V1
     class PostsController < BaseController
+      include Api::V1::Payloads
+
       def index
-        posts = current_user.posts.order(created_at: :desc).limit(50)
-        render json: { posts: posts.map { |p| post_payload(p) } }
+        posts = current_user.posts
+                            .includes(deliveries: :provider_account)
+                            .order(created_at: :desc)
+                            .limit(50)
+        render json: { posts: posts.map { |p| post_payload(p, include_totals: true) } }
       end
 
       def create
@@ -33,9 +38,19 @@ module Api
 
       def show
         post = current_user.posts.find(params[:id])
-        render json: post_payload(post).merge(
-          deliveries: post.deliveries.includes(:provider_account).map { |d| delivery_payload(d) }
+        deliveries = post.deliveries.includes(:provider_account, :replies, :reactions)
+        enqueue_engagement_sync_if_stale(deliveries)
+
+        render json: post_payload(post, include_totals: true).merge(
+          deliveries: deliveries.map { |d| delivery_payload(d, include_engagement: true) }
         )
+      end
+
+      def refresh_engagement
+        post = current_user.posts.find(params[:id])
+        eligible = post.deliveries.includes(:provider_account).select(&:engagement_syncable?)
+        eligible.each { |d| SyncDeliveryEngagementJob.perform_later(d.id) }
+        render json: { enqueued: eligible.size }, status: :accepted
       end
 
       private
@@ -66,26 +81,6 @@ module Api
         slots = params[:media_slots]
         return [] if slots.blank?
         slots.is_a?(String) ? (JSON.parse(slots) rescue []) : slots
-      end
-
-      def post_payload(post)
-        {
-          id: post.id,
-          content_text: post.content_text,
-          content_warning: post.content_warning,
-          created_at: post.created_at.iso8601
-        }
-      end
-
-      def delivery_payload(d)
-        {
-          id: d.id,
-          provider: d.provider_account.provider,
-          handle: d.provider_account.handle,
-          status: d.status,
-          provider_post_id: d.provider_post_id,
-          error_message: d.error_message
-        }
       end
     end
   end

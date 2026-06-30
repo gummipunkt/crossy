@@ -1,7 +1,10 @@
 class Delivery < ApplicationRecord
   belongs_to :post
   belongs_to :provider_account
-  has_many :replies, class_name: "DeliveryReply", dependent: :delete_all
+  has_many :replies,   class_name: "DeliveryReply", dependent: :delete_all
+  has_many :reactions, class_name: "DeliveryReaction", dependent: :delete_all
+  has_many :likes,     -> { where(kind: "like") },   class_name: "DeliveryReaction"
+  has_many :reposts,   -> { where(kind: "repost") }, class_name: "DeliveryReaction"
 
   # Rails 8 Enum-Syntax (string-backed)
   enum :status, {
