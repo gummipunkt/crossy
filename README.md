@@ -28,9 +28,9 @@ A small Rails app that helps you post to multiple social networks at once. It st
 
 ## Tech
 
-- Ruby 3.3, Rails 8
+- Ruby 3.3, Rails 8.1
 - PostgreSQL (app plus separate DBs for Solid Cache, Solid Queue, Solid Cable in the default Docker setup)
-- Redis (included in Docker Compose; optional depending on how you wire features)
+- Redis (started by the example Docker Compose file; the app does not use it yet)
 - Solid Queue for background jobs (database-backed in the default configuration)
 - Tailwind CSS, esbuild, Hotwire (Turbo, Stimulus)
 - Faraday for HTTP calls
@@ -38,7 +38,7 @@ A small Rails app that helps you post to multiple social networks at once. It st
 
 ## Run with Docker Compose
 
-The repo ships one compose file: [`docker-compose.yml`](docker-compose.yml). It runs Rails in **production** mode with a source bind mount (good for local iteration), bundled **web** and **worker** services, Postgres, and Redis.
+The repo ships an example compose file: [`docker-compose.prod.yml.example`](docker-compose.prod.yml.example). Copy it to `docker-compose.yml` (which is gitignored) and adjust it. It runs Rails in **production** mode with a source bind mount (good for local iteration), bundled **web** and **worker** services, Postgres, and Redis.
 
 **Requirements:** Docker and Docker Compose.
 
@@ -47,12 +47,23 @@ The repo ships one compose file: [`docker-compose.yml`](docker-compose.yml). It 
 ```bash
 git clone https://github.com/gummipunkt/crossy.git
 cd crossy
+cp docker-compose.prod.yml.example docker-compose.yml
 cp env/.env.production.example env/.env.production
-# Edit env/.env.production: SECRET_KEY_BASE, LOCKBOX_MASTER_KEY, BLIND_INDEX_MASTER_KEY,
+# Fill in env/.env.production: SECRET_KEY_BASE, LOCKBOX_MASTER_KEY, BLIND_INDEX_MASTER_KEY,
 # PUBLIC_BASE_URL, SMTP, Threads keys, etc.
 ```
 
-Use a strong `POSTGRES_PASSWORD` (and matching credentials in `DATABASE_URL` if you override it). See comments at the top of `docker-compose.yml` for Redis password / deploy hygiene.
+Generate the secrets instead of reusing example values:
+
+```bash
+openssl rand -hex 64   # SECRET_KEY_BASE
+openssl rand -hex 32   # LOCKBOX_MASTER_KEY
+openssl rand -hex 32   # BLIND_INDEX_MASTER_KEY
+```
+
+Back up `LOCKBOX_MASTER_KEY`: without it the stored access tokens cannot be decrypted.
+
+The example compose file uses `crossy:crossy` as database credentials, both for the `db` service and in the `DATABASE_URL`/`*_DATABASE_URL` entries of `web` and `worker`. Change them in all places if the database is reachable from outside.
 
 ### 2. Start the stack
 
@@ -87,13 +98,13 @@ docker compose exec -w /app/server web bash -lc "bin/rails db:migrate"
 
 ## Configuration
 
-Environment variables are loaded from **`env/.env.production`** (see [`env/.env.production.example`](env/.env.production.example)). Additional examples live in [`.env.production.example`](.env.production.example) and [`.env.development.example`](.env.development.example).
+Environment variables are loaded from **`env/.env.production`** (see [`env/.env.production.example`](env/.env.production.example)). For local development see [`.env.development.example`](.env.development.example).
 
 **Important**
 
 - **`PUBLIC_BASE_URL`** — OAuth redirects, mailer links, host authorization (with `localhost` / `127.0.0.1` allowed for internal checks where configured).
-- **Threads** — Whitelist redirect URI: `https://<your-domain>/auth/threads/callback`. Use **threads.net** OAuth/Graph URLs, not **threads.com**.
-- **Lockbox / Blind Index** — `LOCKBOX_MASTER_KEY`, `BLIND_INDEX_MASTER_KEY` (64 hex chars for blind index; keep quoted in env files).
+- **Threads** — Whitelist redirect URI: `https://<your-domain>/auth/threads/callback`. Use **threads.net** OAuth/Graph URLs, not **threads.com**. The Meta app needs the permissions `threads_basic`, `threads_content_publish`, `threads_manage_insights` and `threads_read_replies` (the last two for likes/replies/reposts); override with `THREADS_SCOPES` if needed. Tokens are refreshed daily by a recurring job; an account whose token can no longer be refreshed is marked for reconnecting.
+- **Lockbox / Blind Index** — `LOCKBOX_MASTER_KEY`, `BLIND_INDEX_MASTER_KEY` (64 hex characters each).
 
 **SMTP (password reset):** `MAILER_SENDER`, `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS`, optional `SMTP_OPENSSL_VERIFY_MODE`.
 
@@ -122,10 +133,10 @@ Use `config/database.yml` and env vars as usual for development.
 
 ## Connecting providers
 
-- **Mastodon** — Instance URL (https) + access token; scopes should include `write:statuses` (and media if you upload).
-- **Bluesky** — Handle + app password under Provider accounts.
+- **Mastodon** — Instance URL (https) + access token; scopes must include `write:statuses` (or `write`), plus `write:media` if you upload.
+- **Bluesky** — Handle + app password under Provider accounts. Posts are limited to 300 characters and up to 4 images of at most ~1 MB each; links, mentions and hashtags become clickable.
 - **Threads** — “Connect Threads” → `/auth/threads`.
-- **Nostr** — Add a Nostr provider account; on the post page use prepare / sign / publish with a **NIP-07** extension.
+- **Nostr** — Add a Nostr provider account with its public key in hex (not `npub`); on the post page use sign / publish with a **NIP-07** extension. The server verifies the signed event and only marks it published when a relay accepts it.
 
 ## CI
 
