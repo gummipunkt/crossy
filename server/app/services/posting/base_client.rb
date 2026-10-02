@@ -4,7 +4,7 @@ module Posting
       @provider_account = provider_account
     end
 
-    def post!(post, media_attachments: [])
+    def post!(post, media_attachments: [], idempotency_key: nil)
       raise NotImplementedError
     end
   end

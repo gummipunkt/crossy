@@ -29,7 +29,7 @@ module Posting
       true
     end
 
-    def post!(post, media_attachments: [])
+    def post!(post, media_attachments: [], idempotency_key: nil)
       did, access_jwt = ensure_session
 
       base_url = (@provider_account.instance.presence || DEFAULT_BASE).chomp("/")

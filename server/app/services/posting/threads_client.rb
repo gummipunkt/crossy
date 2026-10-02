@@ -5,19 +5,20 @@ require "uri"
 module Posting
   class ThreadsClient < BaseClient
     GRAPH_BASE = ENV.fetch("THREADS_GRAPH_BASE", "https://graph.threads.net")
+    # Meta recommends waiting for the media container to finish processing
+    # before publishing; text containers are usually ready immediately.
+    CONTAINER_POLL_INTERVAL = 2
+    CONTAINER_MAX_WAIT = 60
 
     # Text-Post und optional ein Bild (öffentlich erreichbar via PUBLIC_BASE_URL)
-    def post!(post, media_attachments: [])
+    def post!(post, media_attachments: [], idempotency_key: nil)
       access_token = ensure_fresh_token
       user_id = @provider_account.handle # in OAuth-Callback als me.id gespeichert
       raise "Missing access_token" if access_token.to_s.strip.empty?
       raise "Missing user id" if user_id.to_s.strip.empty?
 
       app_id = ENV.fetch("THREADS_APP_ID")
-      conn = Faraday.new(url: GRAPH_BASE) do |f|
-        f.request :url_encoded
-        f.adapter Faraday.default_adapter
-      end
+      conn = connection
 
       params = { access_token: access_token }
 
@@ -68,63 +69,71 @@ module Posting
       parsed = JSON.parse(resp.body) rescue {}
       creation_id = parsed["id"] || raise("Threads response missing id: #{resp.body}")
 
-      # Publish step: some Threads Graph flows require publishing the created container
-      publish_ok = false
-      publish_resp = nil
-      begin
-        # Preferred: explicit publish endpoint with creation_id
-        publish_resp = conn.post("/v1.0/#{user_id}/threads_publish") do |req|
+      # The token may have been refreshed above (error 190), so use the one
+      # that actually created the container for the remaining calls.
+      token = params[:access_token]
+      wait_for_container!(conn, creation_id, token, app_id)
+
+      publish_resp = conn.post("/v1.0/#{user_id}/threads_publish") do |req|
+        req.headers["Accept"] = "application/json"
+        req.headers["X-IG-App-ID"] = app_id
+        req.options.timeout = 15
+        req.options.open_timeout = 5
+        req.body = { access_token: token, creation_id: creation_id }
+      end
+      raise "Threads publish failed: #{publish_resp.status} #{publish_resp.body}" unless publish_resp.success?
+
+      # insights/replies endpoints require the published media id, not the container id.
+      published_id = (JSON.parse(publish_resp.body) rescue {})["id"]
+      raise "Threads publish response missing id: #{publish_resp.body}" if published_id.blank?
+
+      published_id
+    end
+
+    private
+
+    def connection
+      Faraday.new(url: GRAPH_BASE) do |f|
+        f.request :url_encoded
+        f.adapter Faraday.default_adapter
+      end
+    end
+
+    # Polls the container until Threads reports FINISHED. Raises on ERROR or
+    # EXPIRED; after CONTAINER_MAX_WAIT the publish is attempted anyway and
+    # Threads' own error decides.
+    def wait_for_container!(conn, creation_id, token, app_id)
+      deadline = monotonic_now + CONTAINER_MAX_WAIT
+      loop do
+        resp = conn.get("/v1.0/#{creation_id}") do |req|
           req.headers["Accept"] = "application/json"
           req.headers["X-IG-App-ID"] = app_id
           req.options.timeout = 15
           req.options.open_timeout = 5
-          req.body = { access_token: access_token, creation_id: creation_id }
+          req.params = { access_token: token, fields: "status,error_message" }
         end
-        publish_ok = publish_resp.success?
-      rescue => _e
-        publish_ok = false
-      end
-
-      unless publish_ok
-        # Fallback: try toggling the container to published
-        [
-          { key: :published, value: true },
-          { key: :is_published, value: true }
-        ].each do |flag|
-          begin
-            publish_resp = conn.post("/v1.0/#{creation_id}") do |req|
-              req.headers["Accept"] = "application/json"
-              req.headers["X-IG-App-ID"] = app_id
-              req.options.timeout = 15
-              req.options.open_timeout = 5
-              req.body = { access_token: access_token, flag[:key] => flag[:value] }
-            end
-            if publish_resp.success?
-              publish_ok = true
-              break
-            end
-          rescue => _e
-            # continue to next fallback
+        if resp.success?
+          body = (JSON.parse(resp.body) rescue {})
+          case body["status"]
+          when "FINISHED", "PUBLISHED" then return
+          when "ERROR", "EXPIRED"
+            raise "Threads container #{creation_id} #{body["status"]}: #{body["error_message"]}"
           end
         end
-      end
+        return if monotonic_now >= deadline
 
-      unless publish_ok
-        Rails.logger.warn("Threads publish step failed for creation_id=#{creation_id}: #{publish_resp&.status} #{publish_resp&.body}")
+        pause(CONTAINER_POLL_INTERVAL)
       end
-
-      # Prefer the published media id from the publish response; fall back to
-      # the creation_id only if we couldn't parse one (insights/replies endpoints
-      # require the media id, not the container id).
-      published_id = nil
-      if publish_ok && publish_resp&.success?
-        published_body = (JSON.parse(publish_resp.body) rescue {})
-        published_id = published_body["id"]
-      end
-      published_id.presence || creation_id
     end
 
-    private
+    def monotonic_now
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def pause(seconds)
+      sleep(seconds)
+    end
+
     def ensure_fresh_token
       token = @provider_account.access_token.to_s
       exp = @provider_account.threads_token_expires_at
