@@ -11,9 +11,7 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
   - package-ecosystem: docker
-    directories:
-      - "/"
-      - "/server"
+    directory: "/server"
     schedule:
       interval: weekly
   - package-ecosystem: github-actions

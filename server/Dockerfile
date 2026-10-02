@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.3.4
+ARG RUBY_VERSION=3.3.10
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -29,8 +29,10 @@ ENV RAILS_ENV="production" \
 FROM base AS build
 
 # Install packages needed to build gems and node modules
+# (libffi-dev: the fiddle gem, pulled in by blind_index -> argon2-kdf; the
+# libffi8 runtime library is already part of the Ruby base image)
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev node-gyp pkg-config python-is-python3 && \
+    apt-get install --no-install-recommends -y build-essential git libffi-dev libpq-dev libyaml-dev node-gyp pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install JavaScript dependencies
@@ -56,8 +58,9 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
+# config/database.yml requires DATABASE_URL in production; no connection is made.
+RUN SECRET_KEY_BASE_DUMMY=1 DATABASE_URL=postgresql://build@localhost/build ./bin/rails assets:precompile
 
 
 RUN rm -rf node_modules
