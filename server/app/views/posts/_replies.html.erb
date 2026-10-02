@@ -24,9 +24,9 @@
           <% end %>
         </div>
         <div class="mt-1 text-sm text-stone-800 whitespace-pre-line break-words"><%= r.content %></div>
-        <% if r.permalink.present? %>
+        <% if (permalink = safe_external_url(r.permalink)) %>
           <div class="mt-1">
-            <a href="<%= r.permalink %>" target="_blank" rel="noopener noreferrer" class="crossy-link text-[11px]">Original ansehen</a>
+            <a href="<%= permalink %>" target="_blank" rel="noopener noreferrer" class="crossy-link text-[11px]">Original ansehen</a>
           </div>
         <% end %>
       </li>

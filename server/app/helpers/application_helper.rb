@@ -45,6 +45,15 @@ module ApplicationHelper
     end
   end
 
+  # Links from remote servers (e.g. federated Mastodon statuses) are only
+  # rendered when they are http(s), so a javascript: URL can never become a link.
+  def safe_external_url(url)
+    uri = URI.parse(url.to_s.strip)
+    uri.to_s if %w[http https].include?(uri.scheme&.downcase) && uri.host.present?
+  rescue URI::InvalidURIError
+    nil
+  end
+
   def network_label(provider)
     provider.to_s.capitalize
   end

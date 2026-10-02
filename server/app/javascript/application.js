@@ -98,6 +98,7 @@ window.feedAct = async function feedAct (el) {
     action_type: actionType
   }
   if (el.dataset.cid) payload.cid = el.dataset.cid
+  if (el.dataset.providerAccountId) payload.provider_account_id = el.dataset.providerAccountId
 
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content
 

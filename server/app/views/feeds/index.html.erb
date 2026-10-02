@@ -64,7 +64,7 @@
             </div>
             <span class="text-xs text-stone-500 mt-0.5 block">
               <% if it.url.present? %>
-                <a href="<%= it.url %>" target="_blank" rel="noopener" class="hover:text-violet-700 transition-colors"><%= time_ago_in_words(it.created_at) if it.created_at %> ago</a>
+                <a href="<%= safe_external_url(it.url) || "#" %>" target="_blank" rel="noopener" class="hover:text-violet-700 transition-colors"><%= time_ago_in_words(it.created_at) if it.created_at %> ago</a>
               <% else %>
                 <%= time_ago_in_words(it.created_at) if it.created_at %> ago
               <% end %>
@@ -92,6 +92,7 @@
           <button type="button"
             class="crossy-action-btn crossy-action-btn--like <%= 'crossy-action-btn--active' if it.liked_by_me %>"
             data-provider="<%= it.provider %>"
+            data-provider-account-id="<%= it.provider_account_id %>"
             data-id="<%= it.id %>"
             <% if it.cid.present? %>data-cid="<%= it.cid %>"<% end %>
             data-action-type="like"
@@ -106,6 +107,7 @@
           <button type="button"
             class="crossy-action-btn crossy-action-btn--repost <%= 'crossy-action-btn--active' if it.reposted_by_me %>"
             data-provider="<%= it.provider %>"
+            data-provider-account-id="<%= it.provider_account_id %>"
             data-id="<%= it.id %>"
             <% if it.cid.present? %>data-cid="<%= it.cid %>"<% end %>
             data-action-type="repost"
@@ -122,6 +124,7 @@
             <button type="button"
               class="crossy-action-btn crossy-action-btn--bookmark <%= 'crossy-action-btn--active' if it.bookmarked_by_me %>"
               data-provider="<%= it.provider %>"
+              data-provider-account-id="<%= it.provider_account_id %>"
               data-id="<%= it.id %>"
               data-action-type="bookmark"
               onclick="feedAct(this)">
@@ -142,7 +145,7 @@
           <% end %>
 
           <% if it.url.present? %>
-            <a href="<%= it.url %>" target="_blank" rel="noopener" class="crossy-action-btn ml-auto">
+            <a href="<%= safe_external_url(it.url) || "#" %>" target="_blank" rel="noopener" class="crossy-action-btn ml-auto">
               <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 3h6v6M17 3 9 11M14 11v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5"/>
               </svg>
