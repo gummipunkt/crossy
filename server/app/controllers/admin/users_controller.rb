@@ -43,6 +43,12 @@ class Admin::UsersController < Admin::BaseController
   private
 
   def user_params
-    params.require(:user).permit(:email, :password, :password_confirmation)
+    permitted = params.require(:user).permit(:email, :password, :password_confirmation)
+    # The form says "leave blank to keep"; a blank password would fail validation.
+    if permitted[:password].blank?
+      permitted.delete(:password)
+      permitted.delete(:password_confirmation)
+    end
+    permitted
   end
 end

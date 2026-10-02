@@ -44,77 +44,30 @@ module Api
       end
 
       def create_mastodon
-        handle   = params.require(:handle).to_s.strip
-        instance = params.require(:instance).to_s.strip
-        token    = params.require(:access_token).to_s.strip
-
-        instance = "https://#{instance}" unless instance.start_with?("http://", "https://")
-        instance = instance.sub(%r{/+$}, "")
-        SsrfSafeUrlValidator.validate!(instance)
-
-        conn = Faraday.new(url: instance) { |f| f.adapter Faraday.default_adapter }
-        verify = conn.get("/api/v1/accounts/verify_credentials") do |r|
-          r.headers["Authorization"] = "Bearer #{token}"
-          r.headers["Accept"] = "application/json"
-        end
-        raise "Mastodon token invalid (#{verify.status})" unless verify.success?
-
-        scopes_string = nil
-        begin
-          info = conn.get("/oauth/token/info") do |r|
-            r.headers["Authorization"] = "Bearer #{token}"
-            r.headers["Accept"] = "application/json"
-          end
-          if info.success?
-            body = (JSON.parse(info.body) rescue {})
-            raw_scopes = body["scopes"]
-            scopes = raw_scopes.is_a?(Array) ? raw_scopes : raw_scopes.to_s.split(/\s+/)
-            scopes_string = scopes.join(" ")
-            raise "Mastodon token missing scope: write:statuses" unless scopes.include?("write:statuses")
-          end
-        rescue => e
-          raise e if e.message.include?("missing scope")
-          scopes_string ||= nil
-        end
-
-        pa = current_user.provider_accounts.create!(
-          provider: "mastodon",
-          handle: handle,
-          instance: instance,
-          access_token: token,
-          scopes: scopes_string
+        pa = connector.mastodon!(
+          handle: params.require(:handle),
+          instance: params.require(:instance),
+          access_token: params.require(:access_token)
         )
         render json: { provider_account: account_payload(pa) }, status: :created
       end
 
       def create_bluesky
-        handle       = params.require(:handle).to_s.strip
-        app_password = params.require(:app_password).to_s
-        instance     = params[:instance].presence&.to_s&.strip
-
-        if instance.present?
-          instance = "https://#{instance}" unless instance.start_with?("http://", "https://")
-          instance = instance.sub(%r{/+$}, "")
-          SsrfSafeUrlValidator.validate!(instance)
-        end
-
-        pa = ProviderAccount.find_or_create_by!(
-          provider: "bluesky",
-          handle: handle,
-          instance: instance.presence,
-          user_id: current_user.id
+        pa = connector.bluesky!(
+          handle: params.require(:handle),
+          app_password: params.require(:app_password),
+          instance: params[:instance]
         )
-        Posting::BlueskyClient.new(pa).login!(app_password)
         render json: { provider_account: account_payload(pa) }, status: :created
       end
 
       def create_nostr
-        pa = current_user.provider_accounts.create!(
-          provider: "nostr",
-          handle: params.require(:handle),
-          public_key: params.require(:public_key)
-        )
+        pa = connector.nostr!(handle: params.require(:handle), public_key: params.require(:public_key))
         render json: { provider_account: account_payload(pa) }, status: :created
+      end
+
+      def connector
+        ProviderConnector.new(current_user)
       end
     end
   end

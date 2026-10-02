@@ -7,99 +7,34 @@ class ProviderAccountsController < ApplicationController
   end
 
   def create
-    provider = params.require(:provider)
+    connector = ProviderConnector.new(current_user)
 
-    case provider
+    case params.require(:provider)
     when "mastodon"
-      handle = params.require(:handle)
-      instance = params.require(:instance).to_s.strip
-      token = params.require(:access_token).to_s.strip
-
-      # Normalize instance similar to the model callback
-      unless instance.start_with?("http://", "https://")
-        instance = "https://#{instance}"
-      end
-      instance = instance.sub(%r{/+$}, "")
-
-      SsrfSafeUrlValidator.validate!(instance)
-
-      # Validate token against instance
-      conn = Faraday.new(url: instance) { |f| f.adapter Faraday.default_adapter }
-      verify = conn.get("/api/v1/accounts/verify_credentials") do |r|
-        r.headers["Authorization"] = "Bearer #{token}"
-        r.headers["Accept"] = "application/json"
-      end
-      unless verify.success?
-        raise "Mastodon-Token ungültig (#{verify.status}): #{verify.body}"
-      end
-
-      # Try to identify scopes and check them against `write:statuses`
-      scopes_string = nil
-      begin
-        info = conn.get("/oauth/token/info") do |r|
-          r.headers["Authorization"] = "Bearer #{token}"
-          r.headers["Accept"] = "application/json"
-        end
-        if info.success?
-          body = (JSON.parse(info.body) rescue {})
-          raw_scopes = body["scopes"]
-          scopes = raw_scopes.is_a?(Array) ? raw_scopes : raw_scopes.to_s.split(/\s+/)
-          scopes_string = scopes.join(" ")
-          unless scopes.include?("write:statuses")
-            raise "Mastodon-Token: erforderlicher Scope fehlt: write:statuses"
-          end
-        end
-      rescue => _e
-        # Some servers do not have a /oauth/token/info endpoint—in that case, we proceed,
-        # but do not save any scopes.
-        scopes_string ||= nil
-      end
-
-      pa = ProviderAccount.create!(
-        provider: "mastodon",
-        handle: handle,
-        instance: instance,
-        access_token: token,
-        scopes: scopes_string,
-        user_id: current_user.id
+      pa = connector.mastodon!(
+        handle: params.require(:handle),
+        instance: params.require(:instance),
+        access_token: params.require(:access_token)
       )
-      redirect_to provider_accounts_path, notice: "Mastodon verbunden: #{pa.handle}"
-
+      redirect_to provider_accounts_path, notice: "Mastodon connected: #{pa.handle}"
     when "bluesky"
-      instance = params[:instance].presence&.to_s&.strip
-      if instance.present?
-        unless instance.start_with?("http://", "https://")
-          instance = "https://#{instance}"
-        end
-        instance = instance.sub(%r{/+$}, "")
-        SsrfSafeUrlValidator.validate!(instance)
-      end
-      pa = ProviderAccount.find_or_create_by!(
-        provider: "bluesky",
+      pa = connector.bluesky!(
         handle: params.require(:handle),
-        instance: instance.presence,
-        user_id: current_user.id
+        app_password: params.require(:app_password),
+        instance: params[:instance]
       )
-      Posting::BlueskyClient.new(pa).login!(params.require(:app_password))
       redirect_to provider_accounts_path, notice: "Bluesky connected: #{pa.handle}"
-
     when "nostr"
-      pa = ProviderAccount.create!(
-        provider: "nostr",
-        handle: params.require(:handle),
-        public_key: params.require(:public_key),
-        user_id: current_user.id
-      )
+      pa = connector.nostr!(handle: params.require(:handle), public_key: params.require(:public_key))
       redirect_to provider_accounts_path, notice: "Nostr connected: #{pa.handle}"
-
     when "threads"
       redirect_to "/auth/threads"
-
     else
       redirect_to provider_accounts_path, alert: "Unknown provider"
     end
   rescue => e
-    redirect_to provider_accounts_path, alert: e.message
+    # Remote error bodies can be long; keep the flash well below the cookie limit.
+    redirect_to provider_accounts_path, alert: e.message.truncate(300)
   end
 
   def destroy
