@@ -100,6 +100,6 @@ class ProviderConnector
   end
 
   def connection(instance)
-    Faraday.new(url: instance) { |f| f.adapter Faraday.default_adapter }
+    SafeHttp.connection(instance)
   end
 end

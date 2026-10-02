@@ -82,18 +82,14 @@ module Posting
     end
 
     def upload_connection(base_url)
-      Faraday.new(url: base_url, request: { timeout: 60, open_timeout: 5 }) do |f|
+      SafeHttp.connection(base_url, request: { timeout: 60, open_timeout: 5 }) do |f|
         f.request :multipart
         f.request :url_encoded
-        f.adapter Faraday.default_adapter
       end
     end
 
     def connection(base_url)
-      Faraday.new(url: base_url) do |f|
-        f.request :url_encoded
-        f.adapter Faraday.default_adapter
-      end
+      SafeHttp.connection(base_url) { |f| f.request :url_encoded }
     end
   end
 end

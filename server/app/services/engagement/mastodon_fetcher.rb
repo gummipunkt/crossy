@@ -17,7 +17,7 @@ module Engagement
       raise "Missing access_token" if token.blank?
 
       status_id = @delivery.provider_post_id
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
 
       status  = get_json!(conn, "/api/v1/statuses/#{status_id}", token)
       context = get_json!(conn, "/api/v1/statuses/#{status_id}/context", token)
