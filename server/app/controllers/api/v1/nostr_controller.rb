@@ -23,17 +23,20 @@ module Api
         pa = current_user.provider_accounts.find(params.require(:provider_account_id))
         raise "wrong provider" unless pa.provider == "nostr"
 
-        current_user.posts.find(post_id)
+        post = current_user.posts.find(post_id)
 
         event = permitted_signed_nostr_event
-        Posting::NostrClient.new(pa).publish_signed_event!(event)
-        Delivery.where(post_id: post_id, provider_account: pa).update_all(status: "succeeded", provider_post_id: event["id"])
-        render json: { ok: true }
+        client = Posting::NostrClient.new(pa)
+        client.verify_signed_event!(event, post)
+        relays = client.publish_signed_event!(event)
+        Delivery.where(post_id: post_id, provider_account: pa)
+                .update_all(status: "succeeded", provider_post_id: event["id"], error_message: nil, finished_at: Time.current)
+        render json: { ok: true, relays: relays }
       rescue ActiveRecord::RecordNotFound
         raise
       rescue => e
         if pa && post_id
-          Delivery.where(post_id: post_id, provider_account: pa).update_all(status: "failed", error_message: e.message) rescue nil
+          Delivery.where(post_id: post_id, provider_account: pa).update_all(status: "failed", error_message: e.message, finished_at: Time.current) rescue nil
         end
         render json: { ok: false, error: e.message }, status: :unprocessable_entity
       end

@@ -24,10 +24,12 @@ module Api
         provider_accounts = current_user.provider_accounts.where(id: provider_ids)
 
         deliveries = provider_accounts.map do |pa|
-          Delivery.create!(post: post, provider_account: pa, status: "queued", dedup_key: SecureRandom.uuid)
+          # Nostr events are signed in the browser, so they wait for the user instead of a job.
+          status = pa.provider == "nostr" ? "awaiting_signature" : "queued"
+          Delivery.create!(post: post, provider_account: pa, status: status, dedup_key: SecureRandom.uuid)
         end
 
-        deliveries.each { |d| PostDeliveryJob.perform_later(d.id) }
+        deliveries.select(&:queued?).each { |d| PostDeliveryJob.perform_later(d.id) }
 
         render json: {
           id: post.id,

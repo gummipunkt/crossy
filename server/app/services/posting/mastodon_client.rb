@@ -5,7 +5,7 @@ require "uri"
 
 module Posting
   class MastodonClient < BaseClient
-    def post!(post, media_attachments: [])
+    def post!(post, media_attachments: [], idempotency_key: nil)
       base_url = @provider_account.instance.chomp("/")
       token = @provider_account.access_token
       raise "Missing access_token" if token.blank?
@@ -35,16 +35,13 @@ module Posting
         media_ids << media_json["id"] if media_json["id"]
       end
       body[:media_ids] = media_ids if media_ids.any?
-      # TODO: Medien-Upload später ergänzen
 
-      conn = Faraday.new(url: base_url) do |f|
-        f.request :url_encoded
-        f.adapter Faraday.default_adapter
-      end
-
-      resp = conn.post("/api/v1/statuses") do |req|
+      resp = connection(base_url).post("/api/v1/statuses") do |req|
         req.headers["Authorization"] = "Bearer #{token}"
         req.headers["Accept"] = "application/json"
+        # Mastodon returns the original status for a repeated key, so a
+        # retried delivery cannot create a duplicate post.
+        req.headers["Idempotency-Key"] = idempotency_key if idempotency_key.present?
         req.options.timeout = 15
         req.options.open_timeout = 5
         req.body = body
@@ -56,6 +53,15 @@ module Posting
 
       parsed = JSON.parse(resp.body) rescue {}
       parsed["id"] || raise("Mastodon response missing id: #{resp.body}")
+    end
+
+    private
+
+    def connection(base_url)
+      Faraday.new(url: base_url) do |f|
+        f.request :url_encoded
+        f.adapter Faraday.default_adapter
+      end
     end
   end
 end
