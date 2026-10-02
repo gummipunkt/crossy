@@ -5,15 +5,6 @@ class TimelineController < ApplicationController
                  .order(created_at: :desc)
                  .limit(100)
 
-    enqueue_stale_engagement_syncs(@posts)
-  end
-
-  private
-
-  def enqueue_stale_engagement_syncs(posts)
-    posts.flat_map(&:deliveries).each do |d|
-      next unless d.engagement_syncable? && d.metrics_stale?
-      SyncDeliveryEngagementJob.perform_later(d.id)
-    end
+    Delivery.enqueue_stale_engagement_syncs(@posts.flat_map(&:deliveries))
   end
 end

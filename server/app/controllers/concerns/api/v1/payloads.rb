@@ -83,10 +83,7 @@ module Api
       end
 
       def enqueue_engagement_sync_if_stale(deliveries)
-        deliveries.each do |d|
-          next unless d.engagement_syncable? && d.metrics_stale?
-          SyncDeliveryEngagementJob.perform_later(d.id)
-        end
+        Delivery.enqueue_stale_engagement_syncs(deliveries)
       end
     end
   end

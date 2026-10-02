@@ -53,13 +53,10 @@ module Api
       end
 
       def enqueue_recent_syncs
-        Delivery.joins(:post, :provider_account)
-                .where(posts: { user_id: current_user.id })
-                .where("posts.created_at > ?", SYNC_WINDOW.ago)
-                .find_each do |d|
-          next unless d.engagement_syncable? && d.metrics_stale?
-          SyncDeliveryEngagementJob.perform_later(d.id)
-        end
+        deliveries = Delivery.joins(:post).includes(:provider_account)
+                            .where(posts: { user_id: current_user.id })
+                            .where("posts.created_at > ?", SYNC_WINDOW.ago)
+        Delivery.enqueue_stale_engagement_syncs(deliveries.find_each)
       end
 
       def clamp_limit(raw)
