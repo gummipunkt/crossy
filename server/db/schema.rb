@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_26_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,6 +42,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "api_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token_digest", null: false
+    t.string "device_label"
+    t.datetime "last_used_at"
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
   create_table "deliveries", force: :cascade do |t|
     t.bigint "post_id", null: false
     t.bigint "provider_account_id", null: false
@@ -53,10 +65,47 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
     t.datetime "finished_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "like_count", default: 0, null: false
+    t.integer "reply_count", default: 0, null: false
+    t.integer "repost_count", default: 0, null: false
+    t.datetime "metrics_fetched_at"
+    t.text "metrics_error"
     t.index ["dedup_key"], name: "index_deliveries_on_dedup_key", unique: true
     t.index ["post_id", "provider_account_id"], name: "index_deliveries_on_post_id_and_provider_account_id", unique: true
     t.index ["post_id"], name: "index_deliveries_on_post_id"
     t.index ["provider_account_id"], name: "index_deliveries_on_provider_account_id"
+  end
+
+  create_table "delivery_reactions", force: :cascade do |t|
+    t.bigint "delivery_id", null: false
+    t.string "kind", null: false
+    t.string "remote_id", null: false
+    t.string "author_handle"
+    t.string "author_name"
+    t.string "author_avatar_url"
+    t.string "author_url"
+    t.datetime "reacted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_delivery_reactions_on_created_at"
+    t.index ["delivery_id", "kind", "remote_id"], name: "idx_reactions_delivery_kind_remote", unique: true
+    t.index ["delivery_id"], name: "index_delivery_reactions_on_delivery_id"
+  end
+
+  create_table "delivery_replies", force: :cascade do |t|
+    t.bigint "delivery_id", null: false
+    t.string "remote_id", null: false
+    t.string "author_handle"
+    t.string "author_name"
+    t.string "author_avatar_url"
+    t.text "content"
+    t.datetime "posted_at"
+    t.string "permalink"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["delivery_id", "remote_id"], name: "index_delivery_replies_on_delivery_id_and_remote_id", unique: true
+    t.index ["delivery_id"], name: "index_delivery_replies_on_delivery_id"
+    t.index ["posted_at"], name: "index_delivery_replies_on_posted_at"
   end
 
   create_table "media_attachments", force: :cascade do |t|
@@ -116,6 +165,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
     t.index ["user_id"], name: "index_provider_accounts_on_user_id"
   end
 
+  create_table "threads_follows", force: :cascade do |t|
+    t.bigint "provider_account_id", null: false
+    t.string "username", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_polled_at"
+    t.datetime "last_seen_post_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider_account_id", "username"], name: "idx_threads_follows_on_account_and_username", unique: true
+    t.index ["provider_account_id"], name: "index_threads_follows_on_provider_account_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "display_name"
@@ -134,10 +195,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_121000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "api_tokens", "users"
   add_foreign_key "deliveries", "posts"
   add_foreign_key "deliveries", "provider_accounts"
+  add_foreign_key "delivery_reactions", "deliveries"
+  add_foreign_key "delivery_replies", "deliveries"
   add_foreign_key "media_attachments", "posts"
   add_foreign_key "nostr_connect_sessions", "provider_accounts"
   add_foreign_key "posts", "users"
   add_foreign_key "provider_accounts", "users"
+  add_foreign_key "threads_follows", "provider_accounts"
 end
