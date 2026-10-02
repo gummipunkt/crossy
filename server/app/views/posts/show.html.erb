@@ -8,6 +8,21 @@
   <% end %>
 </div>
 
+<% if @post.scheduled_for_later? && @deliveries.any?(&:scheduled?) %>
+  <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+    <p class="text-sm text-sky-950">
+      Scheduled for
+      <time datetime="<%= @post.scheduled_at.iso8601 %>" data-local-time class="font-semibold"><%= l(@post.scheduled_at, format: :long) %> UTC</time>
+    </p>
+    <div class="flex gap-2">
+      <%= button_to "Publish now", publish_now_post_path(@post), method: :post, class: "crossy-btn-primary border-0" %>
+      <%= button_to "Cancel", cancel_schedule_post_path(@post), method: :post,
+            form: { data: { turbo_confirm: "Cancel the scheduled deliveries?" } },
+            class: "crossy-btn-secondary" %>
+    </div>
+  </div>
+<% end %>
+
 <div class="mt-8 flex items-center justify-between gap-3 flex-wrap">
   <h2 class="font-display text-xl font-semibold text-stone-900">Deliveries</h2>
   <%= button_to "Engagement aktualisieren", refresh_engagement_post_path(@post),

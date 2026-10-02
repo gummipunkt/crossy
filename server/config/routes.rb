@@ -18,7 +18,11 @@ Rails.application.routes.draw do
       resources :provider_accounts, only: [ :index, :create, :destroy ]
 
       resources :posts, only: [ :index, :create, :show ] do
-        resources :deliveries, only: [ :index ]
+        resources :deliveries, only: [ :index ] do
+          member do
+            post "retry", action: :redeliver, as: :retry
+          end
+        end
         member do
           post :refresh_engagement
         end
@@ -51,6 +55,13 @@ Rails.application.routes.draw do
     member do
       get :deliveries
       post :refresh_engagement
+      post :publish_now
+      post :cancel_schedule
+    end
+    resources :deliveries, only: [] do
+      member do
+        post "retry", action: :redeliver, as: :retry
+      end
     end
   end
   root to: "posts#new"

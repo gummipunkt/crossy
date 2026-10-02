@@ -15,6 +15,7 @@ module Api
         post = current_user.posts.create!(
           content_text: params.require(:content_text),
           content_warning: params[:content_warning],
+          scheduled_at: params[:scheduled_at].presence,
           media_slots: parse_media_slots
         )
 
@@ -24,9 +25,7 @@ module Api
         provider_accounts = current_user.provider_accounts.where(id: provider_ids)
 
         deliveries = provider_accounts.map do |pa|
-          # Nostr events are signed in the browser, so they wait for the user instead of a job.
-          status = pa.provider == "nostr" ? "awaiting_signature" : "queued"
-          Delivery.create!(post: post, provider_account: pa, status: status, dedup_key: SecureRandom.uuid)
+          Delivery.create!(post: post, provider_account: pa, status: Delivery.initial_status_for(pa, post), dedup_key: SecureRandom.uuid)
         end
 
         deliveries.select(&:queued?).each { |d| PostDeliveryJob.perform_later(d.id) }
@@ -34,6 +33,7 @@ module Api
         render json: {
           id: post.id,
           content_text: post.content_text,
+          scheduled_at: post.scheduled_at&.iso8601,
           deliveries: deliveries.map { |d| delivery_payload(d) }
         }, status: :accepted
       end

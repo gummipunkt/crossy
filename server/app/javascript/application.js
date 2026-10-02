@@ -129,6 +129,32 @@ window.feedAct = async function feedAct (el) {
   }
 }
 
+// The composer's datetime-local input has no time zone; send an ISO
+// timestamp with the browser's offset so the server schedules correctly.
+function setupScheduleInput () {
+  const local = document.querySelector("[data-schedule-input]")
+  const hidden = document.getElementById("post_scheduled_at")
+  if (!local || !hidden || local.dataset.bound) return
+  local.dataset.bound = "1"
+
+  const submit = document.querySelector("[data-schedule-submit]")
+  const sync = () => {
+    hidden.value = local.value ? new Date(local.value).toISOString() : ""
+    if (submit) submit.value = local.value ? "Schedule" : "Publish"
+  }
+  local.addEventListener("input", sync)
+  local.form?.addEventListener("submit", sync)
+  sync()
+}
+
+// Show server timestamps in the viewer's local time.
+function localizeTimes () {
+  document.querySelectorAll("time[data-local-time]").forEach((el) => {
+    const date = new Date(el.getAttribute("datetime"))
+    if (!isNaN(date)) el.textContent = date.toLocaleString()
+  })
+}
+
 document.addEventListener("turbo:load", () => {
   const selAll = document.getElementById("select-all-providers")
   const deselAll = document.getElementById("deselect-all-providers")
@@ -144,4 +170,6 @@ document.addEventListener("turbo:load", () => {
 
   setupComposerCounters()
   setupDeliveriesPolling()
+  setupScheduleInput()
+  localizeTimes()
 })

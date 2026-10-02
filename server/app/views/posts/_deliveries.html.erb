@@ -4,6 +4,7 @@
       when "succeeded" then "border-green-200/90 bg-green-50/80"
       when "failed" then "border-rose-200/90 bg-rose-50/80"
       when "awaiting_signature" then "border-amber-200/90 bg-amber-50/80"
+      when "scheduled" then "border-sky-200/90 bg-sky-50/80"
       else "border-violet-100/80 bg-violet-50/70"
       end %>
     <div class="crossy-card-muted <%= status_class %>">
@@ -19,6 +20,12 @@
       <% end %>
       <% if d.error_message.present? %>
         <div class="text-xs text-rose-900 mt-2 rounded-md bg-rose-50 px-2 py-1.5 border border-rose-100">Error: <%= d.error_message %></div>
+      <% end %>
+      <% if d.failed? %>
+        <%# _top: the button sits inside the deliveries turbo-frame, the redirect is a full page. %>
+        <%= button_to "Retry", retry_post_delivery_path(post, d), method: :post,
+              form: { data: { turbo_frame: "_top" } },
+              class: "mt-2 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-50 transition-colors" %>
       <% end %>
 
       <% if d.engagement_syncable? || d.metrics_fetched_at.present? %>
