@@ -3,12 +3,17 @@ require "uri"
 class ThreadsAuthController < ApplicationController
   # The callback can run without logging in; starting the OAuth flow requires logging in
   skip_before_action :authenticate_user!, only: [ :callback ]
+
+  # Insights and replies are needed for engagement sync (likes, reposts, replies).
+  # The Meta app must have these permissions enabled.
+  DEFAULT_SCOPES = %w[threads_basic threads_content_publish threads_manage_insights threads_read_replies].freeze
+
   def new
     app_id = ENV.fetch("THREADS_APP_ID")
     redirect_uri = callback_url
     state = SecureRandom.hex(16)
     session[:threads_oauth_state] = state
-    scope = %w[threads_basic threads_content_publish].join(",")
+    scope = ENV.fetch("THREADS_SCOPES", DEFAULT_SCOPES.join(","))
     oauth_base = ENV.fetch("THREADS_OAUTH_BASE", "https://www.threads.net")
     # Safety: Some deployments mistakenly set threads.com which requires headers we can't send via browser
     begin
@@ -103,7 +108,7 @@ class ThreadsAuthController < ApplicationController
     end
     pa = current_user.provider_accounts.find_or_create_by!(provider: "threads", handle: user_id)
     # Save long-lived token and expiration if available
-    attrs = { access_token: access_token }
+    attrs = { access_token: access_token, status: "active" }
     attrs[:threads_token_expires_at] = (Time.now + expires_in.to_i).utc if expires_in
     pa.update!(attrs)
 

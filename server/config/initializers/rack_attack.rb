@@ -13,9 +13,14 @@ class Rack::Attack
     req.ip if req.path == "/users" && req.post?
   end
 
+  throttle("password_resets/ip", limit: 5, period: 1.hour) do |req|
+    req.ip if req.path == "/users/password" && req.post?
+  end
+
   throttle("api/ip", limit: 300, period: 1.minute) do |req|
     req.ip if req.path.start_with?("/api/")
   end
 end
 
-Rails.application.config.middleware.use Rack::Attack
+# rack-attack's Railtie already inserts the middleware; adding it again here
+# counted every request twice and halved all limits.

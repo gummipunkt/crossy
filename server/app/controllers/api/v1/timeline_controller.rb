@@ -8,24 +8,23 @@ module Api
       end
 
       def action
-        provider = params.require(:provider)
-        item_id  = params.require(:id)
-        action   = params.require(:action_type)
-
-        ok =
-          case provider
-          when "mastodon" then mastodon_interact(item_id, action)
-          when "bluesky"  then bluesky_interact(item_id, action, params[:cid])
-          when "threads"  then threads_interact(item_id, action)
-          else
-            return render json: { error: "Unsupported provider" }, status: :bad_request
-          end
+        ok = FeedInteraction.new(current_user).perform!(
+          provider: params.require(:provider),
+          item_id: params.require(:id),
+          action: params.require(:action_type),
+          cid: params[:cid],
+          provider_account_id: params[:provider_account_id]
+        )
 
         if ok
           head :ok
         else
           render json: { error: "Provider rejected action" }, status: :unprocessable_entity
         end
+      rescue FeedInteraction::UnsupportedAction => e
+        render json: { error: e.message }, status: :bad_request
+      rescue ActionController::ParameterMissing, ActiveRecord::RecordNotFound
+        raise
       rescue => e
         Rails.logger.error("Timeline action error: #{e.message}")
         render json: { error: e.message }, status: :unprocessable_entity
@@ -36,6 +35,7 @@ module Api
       def item_payload(item)
         {
           provider: item.provider,
+          provider_account_id: item.provider_account_id,
           id: item.id,
           author: item.author,
           content: item.content,
@@ -52,61 +52,6 @@ module Api
           cid: item.cid,
           reblogged_by: item.reblogged_by
         }
-      end
-
-      def mastodon_interact(item_id, action)
-        pa = current_user.provider_accounts.find_by!(provider: "mastodon")
-        conn = Faraday.new(url: pa.instance) { |f| f.adapter Faraday.default_adapter }
-        endpoint =
-          case action
-          when "like"     then "/api/v1/statuses/#{item_id}/favourite"
-          when "bookmark" then "/api/v1/statuses/#{item_id}/bookmark"
-          when "repost"   then "/api/v1/statuses/#{item_id}/reblog"
-          else return false
-          end
-        resp = conn.post(endpoint) { |r| r.headers["Authorization"] = "Bearer #{pa.access_token}" }
-        resp.success?
-      end
-
-      def bluesky_interact(item_id, action, cid)
-        pa = current_user.provider_accounts.find_by!(provider: "bluesky")
-        did, access = Posting::BlueskyClient.new(pa).send(:ensure_session)
-        conn = Faraday.new(url: (pa.instance.presence || Posting::BlueskyClient::DEFAULT_BASE)) { |f| f.adapter Faraday.default_adapter }
-
-        subject = { "uri" => item_id }
-        subject["cid"] = cid if cid.present?
-
-        collection, type_key =
-          case action
-          when "like"   then [ "app.bsky.feed.like", "app.bsky.feed.like" ]
-          when "repost" then [ "app.bsky.feed.repost", "app.bsky.feed.repost" ]
-          else return false
-          end
-
-        body = {
-          repo: did,
-          collection: collection,
-          record: { "$type" => type_key, "subject" => subject, "createdAt" => Time.now.utc.iso8601 }
-        }
-        resp = conn.post("/xrpc/com.atproto.repo.createRecord") do |r|
-          r.headers["Authorization"] = "Bearer #{access}"
-          r.headers["Content-Type"] = "application/json"
-          r.body = JSON.dump(body)
-        end
-        resp.success?
-      end
-
-      def threads_interact(item_id, action)
-        pa = current_user.provider_accounts.find_by!(provider: "threads")
-        conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
-        endpoint =
-          case action
-          when "like"   then "/v1.0/#{item_id}/likes"
-          when "repost" then "/v1.0/#{item_id}/reposts"
-          else return false
-          end
-        resp = conn.post(endpoint) { |r| r.body = { access_token: pa.access_token } }
-        resp.success?
       end
     end
   end

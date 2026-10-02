@@ -9,6 +9,8 @@ class ProviderAccount < ApplicationRecord
 
   has_many :deliveries, dependent: :destroy
   has_many :posts, through: :deliveries
+  has_many :threads_follows, dependent: :delete_all
+  has_many :nostr_connect_sessions, dependent: :delete_all
 
   validates :provider, presence: true, inclusion: { in: PROVIDERS }
   validates :handle, presence: true

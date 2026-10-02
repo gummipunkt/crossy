@@ -19,6 +19,20 @@ class Delivery < ApplicationRecord
 
   METRICS_STALE_AFTER = 5.minutes
 
+  # Page views and polling ask for fresh engagement constantly; enqueue at
+  # most one sync per delivery per METRICS_STALE_AFTER. The timestamp is
+  # claimed atomically so concurrent requests cannot both enqueue.
+  def self.enqueue_stale_engagement_syncs(deliveries)
+    deliveries.each do |delivery|
+      next unless delivery.engagement_syncable? && delivery.metrics_stale?
+
+      claimed = where(id: delivery.id)
+                  .where("metrics_sync_enqueued_at IS NULL OR metrics_sync_enqueued_at < ?", METRICS_STALE_AFTER.ago)
+                  .update_all(metrics_sync_enqueued_at: Time.current)
+      SyncDeliveryEngagementJob.perform_later(delivery.id) if claimed == 1
+    end
+  end
+
   def metrics_stale?
     metrics_fetched_at.nil? || metrics_fetched_at < METRICS_STALE_AFTER.ago
   end

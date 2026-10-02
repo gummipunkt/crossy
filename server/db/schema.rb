@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_26_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,6 +70,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_26_100000) do
     t.integer "repost_count", default: 0, null: false
     t.datetime "metrics_fetched_at"
     t.text "metrics_error"
+    t.datetime "metrics_sync_enqueued_at"
     t.index ["dedup_key"], name: "index_deliveries_on_dedup_key", unique: true
     t.index ["post_id", "provider_account_id"], name: "index_deliveries_on_post_id_and_provider_account_id", unique: true
     t.index ["post_id"], name: "index_deliveries_on_post_id"

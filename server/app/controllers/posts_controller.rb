@@ -47,7 +47,7 @@ class PostsController < ApplicationController
     @deliveries = @post.deliveries.includes(:provider_account, :replies)
     @nostr_accounts = current_user.provider_accounts.where(provider: "nostr").order(:handle)
 
-    enqueue_engagement_sync_if_stale(@deliveries)
+    Delivery.enqueue_stale_engagement_syncs(@deliveries)
   end
 
   def deliveries
@@ -71,12 +71,5 @@ class PostsController < ApplicationController
 
   def post_params
     params.require(:post).permit(:content_text, :content_warning)
-  end
-
-  def enqueue_engagement_sync_if_stale(deliveries)
-    deliveries.each do |d|
-      next unless d.engagement_syncable? && d.metrics_stale?
-      SyncDeliveryEngagementJob.perform_later(d.id)
-    end
   end
 end

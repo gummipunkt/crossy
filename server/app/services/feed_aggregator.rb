@@ -10,8 +10,11 @@ class FeedAggregator
     :liked_by_me, :reposted_by_me, :bookmarked_by_me,
     :cid,
     :reblogged_by,
+    :provider_account_id,
     keyword_init: true
   )
+
+  TIMEOUTS = { timeout: 10, open_timeout: 5 }.freeze
 
   def aggregate(limit: 50, user: nil)
     buckets = {
@@ -19,6 +22,9 @@ class FeedAggregator
       bluesky: fetch_bluesky(user),
       threads: fetch_threads(user)
     }
+    # Two connected accounts can see the same post; show it once.
+    seen = Set.new
+    buckets.transform_values! { |list| list.select { |item| seen.add?([ item.provider, item.id ]) } }
 
     # Guarantee each provider gets at least `min_per_provider` slots so
     # a very active provider cannot push others out of the feed entirely.
@@ -46,10 +52,9 @@ class FeedAggregator
     list = []
     rel = ProviderAccount.where(provider: "mastodon")
     rel = rel.where(user_id: user.id) if user
-    rel.find_each do |pa|
+    each_account(rel) do |pa|
       next if pa.access_token.blank? || pa.instance.blank?
-      conn = Faraday.new(url: pa.instance) { |f| f.adapter Faraday.default_adapter }
-      resp = conn.get("/api/v1/timelines/home") do |req|
+      resp = connection(pa.instance).get("/api/v1/timelines/home") do |req|
         req.headers["Authorization"] = "Bearer #{pa.access_token}"
         req.headers["Accept"] = "application/json"
       end
@@ -76,7 +81,8 @@ class FeedAggregator
           liked_by_me: !!display["favourited"],
           reposted_by_me: !!display["reblogged"],
           bookmarked_by_me: !!display["bookmarked"],
-          reblogged_by: reblogger
+          reblogged_by: reblogger,
+          provider_account_id: pa.id
         )
       end
     end
@@ -87,48 +93,44 @@ class FeedAggregator
     list = []
     rel = ProviderAccount.where(provider: "bluesky")
     rel = rel.where(user_id: user.id) if user
-    rel.find_each do |pa|
-      begin
-        did, access = ensure_bluesky_session(pa)
-        conn = Faraday.new(url: (pa.instance.presence || Posting::BlueskyClient::DEFAULT_BASE)) { |f| f.adapter Faraday.default_adapter }
-        resp = conn.get("/xrpc/app.bsky.feed.getTimeline") do |req|
-          req.headers["Authorization"] = "Bearer #{access}"
-          req.headers["Accept"] = "application/json"
+    each_account(rel) do |pa|
+      _did, access = Posting::BlueskyClient.new(pa).session!
+      resp = connection(pa.instance.presence || Posting::BlueskyClient::DEFAULT_BASE).get("/xrpc/app.bsky.feed.getTimeline") do |req|
+        req.headers["Authorization"] = "Bearer #{access}"
+        req.headers["Accept"] = "application/json"
+      end
+      next unless resp.success?
+      (JSON.parse(resp.body)["feed"] rescue []).each do |it|
+        post = it["post"] || {}
+        images = nil
+        emb = post["embed"]
+        if emb && (emb["$type"]&.include?("images#view") || emb.dig("media", "$type")&.include?("images#view"))
+          imgs = emb["images"] || emb.dig("media", "images")
+          images = Array(imgs).map { |im| { "url" => (im["fullsize"] || im["thumb"]), "alt" => im["alt"].to_s } }
         end
-        next unless resp.success?
-        (JSON.parse(resp.body)["feed"] rescue []).each do |it|
-          post = it["post"] || {}
-          images = nil
-          emb = post["embed"]
-          if emb && (emb["$type"]&.include?("images#view") || emb.dig("media", "$type")&.include?("images#view"))
-            imgs = emb["images"] || emb.dig("media", "images")
-            images = Array(imgs).map { |im| { "url" => (im["fullsize"] || im["thumb"]), "alt" => im["alt"].to_s } }
-          end
-          uri = post["uri"].to_s
-          rkey = uri.split("/")[-1]
-          handle_or_did = post.dig("author", "handle") || post.dig("author", "did")
-          bsky_url = (handle_or_did && rkey) ? "https://bsky.app/profile/#{handle_or_did}/post/#{rkey}" : nil
+        uri = post["uri"].to_s
+        rkey = uri.split("/")[-1]
+        handle_or_did = post.dig("author", "handle") || post.dig("author", "did")
+        bsky_url = (handle_or_did && rkey) ? "https://bsky.app/profile/#{handle_or_did}/post/#{rkey}" : nil
 
-          viewer = post["viewer"] || {}
-          list << Item.new(
-            provider: "bluesky",
-            id: post["uri"],
-            author: post.dig("author", "handle"),
-            content: post.dig("record", "text").to_s,
-            created_at: (Time.parse(post.dig("record", "createdAt").to_s) rescue nil),
-            url: bsky_url,
-            images: images,
-            avatar_url: post.dig("author", "avatar"),
-            likes_count: post["likeCount"].to_i,
-            reposts_count: post["repostCount"].to_i,
-            replies_count: post["replyCount"].to_i,
-            liked_by_me: viewer["like"].present?,
-            reposted_by_me: viewer["repost"].present?,
-            cid: post["cid"]
-          )
-        end
-      rescue => _e
-        next
+        viewer = post["viewer"] || {}
+        list << Item.new(
+          provider: "bluesky",
+          id: post["uri"],
+          author: post.dig("author", "handle"),
+          content: post.dig("record", "text").to_s,
+          created_at: (Time.parse(post.dig("record", "createdAt").to_s) rescue nil),
+          url: bsky_url,
+          images: images,
+          avatar_url: post.dig("author", "avatar"),
+          likes_count: post["likeCount"].to_i,
+          reposts_count: post["repostCount"].to_i,
+          replies_count: post["replyCount"].to_i,
+          liked_by_me: viewer["like"].present?,
+          reposted_by_me: viewer["repost"].present?,
+          cid: post["cid"],
+          provider_account_id: pa.id
+        )
       end
     end
     list
@@ -138,10 +140,10 @@ class FeedAggregator
     list = []
     rel = ProviderAccount.where(provider: "threads")
     rel = rel.where(user_id: user.id) if user
-    rel.find_each do |pa|
+    each_account(rel) do |pa|
       next if pa.access_token.blank?
       app_id = ENV.fetch("THREADS_APP_ID")
-      conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
+      conn = connection(Posting::ThreadsClient::GRAPH_BASE)
 
       fields = %w[
         id media_product_type media_type media_url permalink username text timestamp shortcode thumbnail_url
@@ -168,33 +170,33 @@ class FeedAggregator
           content: it["text"].to_s,
           created_at: (it["timestamp"] ? Time.parse(it["timestamp"]) : nil),
           url: it["permalink"],
-          images: images
+          images: images,
+          provider_account_id: pa.id
         )
       end
     end
     list
   end
 
-  def ensure_bluesky_session(pa)
-    did, access = nil, nil
-    begin
-      client = Posting::BlueskyClient.new(pa)
-      did, access = client.send(:ensure_session)
-    rescue => _e
+  # A failing account (timeout, revoked token, missing config) is logged and
+  # skipped so the other accounts still show up.
+  def each_account(relation)
+    relation.find_each do |pa|
+      yield pa
+    rescue => e
+      Rails.logger.warn("Feed fetch failed for #{pa.provider} account #{pa.id}: #{e.class}: #{e.message}")
     end
-    [ did, access ]
+  end
+
+  def connection(base_url)
+    Faraday.new(url: base_url, request: TIMEOUTS) do |f|
+      f.request :url_encoded
+      f.adapter Faraday.default_adapter
+    end
   end
 
   def refresh_threads_token(pa)
-    conn = Faraday.new(url: Posting::ThreadsClient::GRAPH_BASE) { |f| f.request :url_encoded; f.adapter Faraday.default_adapter }
-    resp = conn.get("/refresh_access_token", { grant_type: "th_refresh_token", access_token: pa.access_token })
-    return nil unless resp.success?
-    new_token = (JSON.parse(resp.body) rescue {})["access_token"]
-    if new_token.present?
-      pa.update!(access_token: new_token)
-      return new_token
-    end
-    nil
+    Threads::TokenRefresher.new(pa).refresh!
   end
 
   def extract_threads_images(obj)
