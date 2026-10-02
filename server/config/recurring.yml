@@ -16,3 +16,6 @@ production:
   refresh_threads_tokens:
     class: RefreshThreadsTokensJob
     schedule: every day at 4am
+  dispatch_scheduled_posts:
+    class: DispatchScheduledPostsJob
+    schedule: every minute

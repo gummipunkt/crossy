@@ -11,6 +11,7 @@ module Api
           id: post.id,
           content_text: post.content_text,
           content_warning: post.content_warning,
+          scheduled_at: post.scheduled_at&.iso8601,
           created_at: post.created_at.iso8601
         }
         if include_totals

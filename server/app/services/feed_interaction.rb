@@ -89,9 +89,6 @@ class FeedInteraction
   end
 
   def connection(base_url)
-    Faraday.new(url: base_url, request: { timeout: 10, open_timeout: 5 }) do |f|
-      f.request :url_encoded
-      f.adapter Faraday.default_adapter
-    end
+    SafeHttp.connection(base_url, request: { timeout: 10, open_timeout: 5 }) { |f| f.request :url_encoded }
   end
 end

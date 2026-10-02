@@ -61,8 +61,16 @@
     <textarea name="alts" rows="3" placeholder="Describe images for screen readers…" class="crossy-input" id="post_alts"></textarea>
   </div>
 
+  <div>
+    <label for="post_scheduled_at_local" class="crossy-label mb-2">Schedule (optional)</label>
+    <input type="datetime-local" id="post_scheduled_at_local" class="crossy-input sm:max-w-xs" data-schedule-input>
+    <%# Filled from the local input as an ISO timestamp with the browser's offset. %>
+    <%= f.hidden_field :scheduled_at, id: "post_scheduled_at", value: nil %>
+    <p class="mt-1 text-xs text-stone-500">Leave empty to publish right away. Nostr still needs to be signed on the post page.</p>
+  </div>
+
   <div class="pt-1">
-    <%= f.submit "Publish", class: "crossy-btn-primary" %>
+    <%= f.submit "Publish", class: "crossy-btn-primary", data: { schedule_submit: true } %>
   </div>
 <% end %>
 </div>

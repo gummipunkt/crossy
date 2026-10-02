@@ -17,7 +17,7 @@ module Posting
       raise "Missing handle" if identifier.blank?
       raise "Missing password" if password.to_s.strip.empty?
 
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
       resp = conn.post("/xrpc/com.atproto.server.createSession") do |req|
         req.headers["Content-Type"] = "application/json"
         req.options.timeout = 10
@@ -44,7 +44,7 @@ module Posting
       did, access_jwt = session!
 
       base_url = (@provider_account.instance.presence || DEFAULT_BASE).chomp("/")
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
 
       record = {
         "$type" => "app.bsky.feed.post",
@@ -90,7 +90,7 @@ module Posting
       refresh_jwt = @provider_account.refresh_token
       raise "Missing Bluesky refresh token. Run login! first" if refresh_jwt.to_s.strip.empty?
 
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
       resp = conn.post("/xrpc/com.atproto.server.refreshSession") do |req|
         req.headers["Authorization"] = "Bearer #{refresh_jwt}"
         req.headers["Content-Type"] = "application/json"
@@ -139,7 +139,7 @@ module Posting
     end
 
     def upload_blob!(base_url, access_jwt, bytes, mime)
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
       resp = conn.post("/xrpc/com.atproto.repo.uploadBlob") do |req|
         req.headers["Authorization"] = "Bearer #{access_jwt}"
         req.headers["Content-Type"] = mime

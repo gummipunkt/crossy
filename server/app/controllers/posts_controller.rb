@@ -1,9 +1,7 @@
 class PostsController < ApplicationController
   def new
     @post = Post.new
-    # Only current user's channels; hide duplicates (same provider/handle/instance)
-    scope = ProviderAccount.where(user_id: current_user.id)
-    @provider_accounts = scope.order(:provider, :handle).to_a.uniq { |pa| [ pa.provider, pa.handle, pa.instance.to_s ] }
+    load_provider_accounts
   end
 
   def create
@@ -27,19 +25,39 @@ class PostsController < ApplicationController
       provider_accounts = ProviderAccount.where(user_id: current_user.id, id: provider_ids)
 
       deliveries = provider_accounts.map do |pa|
-        # Nostr events are signed in the browser, so they wait for the user instead of a job.
-        status = pa.provider == "nostr" ? "awaiting_signature" : "queued"
-        Delivery.create!(post: @post, provider_account: pa, status: status, dedup_key: SecureRandom.uuid)
+        Delivery.create!(post: @post, provider_account: pa, status: Delivery.initial_status_for(pa, @post), dedup_key: SecureRandom.uuid)
       end
 
       deliveries.select(&:queued?).each { |d| PostDeliveryJob.perform_later(d.id) }
 
-      redirect_to @post, notice: "Post planed to (#{deliveries.size} network(s)"
+      notice =
+        if @post.scheduled_for_later?
+          "Post scheduled for #{l(@post.scheduled_at, format: :long)} UTC to #{deliveries.size} network(s)"
+        else
+          "Post queued for #{deliveries.size} network(s)"
+        end
+      redirect_to @post, notice: notice
     else
-      @provider_accounts = ProviderAccount.where(user_id: current_user.id).order(:provider, :handle)
-      flash.now[:alert] = "Please enter text"
+      load_provider_accounts
+      flash.now[:alert] = @post.errors.full_messages.to_sentence
       render :new, status: :unprocessable_entity
     end
+  end
+
+  # Sends a scheduled post right away.
+  def publish_now
+    @post = current_user.posts.find(params[:id])
+    @post.update!(scheduled_at: Time.current) if @post.scheduled_for_later?
+    count = Delivery.dispatch_due!(@post.deliveries)
+    redirect_to @post, notice: "Publishing now to #{count} network(s)"
+  end
+
+  # Stops scheduled deliveries; they can still be sent later with "Retry".
+  def cancel_schedule
+    @post = current_user.posts.find(params[:id])
+    count = @post.deliveries.scheduled.update_all(status: "failed", error_message: "Cancelled", finished_at: Time.current, updated_at: Time.current)
+    @post.update!(scheduled_at: nil)
+    redirect_to @post, notice: "Cancelled #{count} scheduled delivery(ies)"
   end
 
   def show
@@ -70,6 +88,12 @@ class PostsController < ApplicationController
   private
 
   def post_params
-    params.require(:post).permit(:content_text, :content_warning)
+    params.require(:post).permit(:content_text, :content_warning, :scheduled_at)
+  end
+
+  # Only the current user's channels; hide duplicates (same provider/handle/instance)
+  def load_provider_accounts
+    scope = ProviderAccount.where(user_id: current_user.id)
+    @provider_accounts = scope.order(:provider, :handle).to_a.uniq { |pa| [ pa.provider, pa.handle, pa.instance.to_s ] }
   end
 end

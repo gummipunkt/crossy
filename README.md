@@ -10,7 +10,8 @@ A small Rails app that helps you post to multiple social networks at once. It st
 
 - Composer with file uploads and alt text
 - Pick the networks you want (including “Select all”)
-- Background deliveries with per-provider status
+- Background deliveries with per-provider status; failed deliveries can be retried
+- Scheduled posts (dispatched by a recurring job every minute; "Publish now" / "Cancel" on the post page)
 - Unified timeline across connected accounts (auto-refresh, like/repost)
 - Encrypted token storage (Lockbox + Blind Index)
 - Sign up / sign in (Devise)
@@ -154,7 +155,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs Brakeman, bundler-audit, RuboCo
 
 - Keep secrets in environment or a secrets manager, not in git.
 - Access tokens are encrypted at rest (Lockbox).
-- Rate limiting (Rack::Attack) and security headers are enabled; user-supplied federation URLs are validated before server-side HTTP requests.
+- Rate limiting (Rack::Attack) and security headers are enabled; user-supplied federation URLs are validated before server-side HTTP requests, and each connection is pinned to the validated IP address (protects against DNS rebinding; not effective behind an outbound HTTP proxy).
 
 ## Roadmap (ideas)
 

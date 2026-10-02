@@ -19,7 +19,7 @@ module Engagement
 
       _did, access_jwt = refresh_session(base_url)
 
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
 
       thread_resp = get_xrpc!(conn, "/xrpc/app.bsky.feed.getPostThread", access_jwt,
                               uri: uri, depth: 1)
@@ -73,7 +73,7 @@ module Engagement
       refresh_jwt = @account.refresh_token
       raise "Missing Bluesky refresh token" if refresh_jwt.to_s.strip.empty?
 
-      conn = Faraday.new(url: base_url) { |f| f.adapter Faraday.default_adapter }
+      conn = SafeHttp.connection(base_url)
       resp = conn.post("/xrpc/com.atproto.server.refreshSession") do |req|
         req.headers["Authorization"] = "Bearer #{refresh_jwt}"
         req.headers["Content-Type"] = "application/json"

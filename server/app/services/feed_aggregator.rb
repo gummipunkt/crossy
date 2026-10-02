@@ -189,10 +189,7 @@ class FeedAggregator
   end
 
   def connection(base_url)
-    Faraday.new(url: base_url, request: TIMEOUTS) do |f|
-      f.request :url_encoded
-      f.adapter Faraday.default_adapter
-    end
+    SafeHttp.connection(base_url, request: TIMEOUTS) { |f| f.request :url_encoded }
   end
 
   def refresh_threads_token(pa)

@@ -21,6 +21,13 @@ class SsrfSafeUrlValidator
   DNS_TIMEOUT_SEC = 5
 
   def self.validate!(url_string, allow_http: !Rails.env.production?)
+    resolve!(url_string, allow_http: allow_http).first
+  end
+
+  # Validates the URL and returns [uri, ip]: an address the host resolved to
+  # that passed the checks. Connecting to exactly that address (see SafeHttp)
+  # closes the gap a second DNS lookup would leave for DNS rebinding.
+  def self.resolve!(url_string, allow_http: !Rails.env.production?)
     uri = URI.parse(url_string.to_s.strip)
     raise Error, "URL scheme not allowed" unless allowed_scheme?(uri.scheme, allow_http: allow_http)
     raise Error, "host required" if uri.host.blank?
@@ -29,13 +36,13 @@ class SsrfSafeUrlValidator
     host = uri.hostname.downcase.chomp(".")
     raise Error, "host not allowed" if DISALLOWED_HOSTNAMES.include?(host)
 
-    if (literal_ip = ip_literal(host))
-      raise_disallowed_ip!(literal_ip)
-    else
-      resolve_and_check_ips!(host)
-    end
+    ips = (literal_ip = ip_literal(host)) ? [ literal_ip ] : resolve_ips(host)
+    ips.each { |ip| raise_disallowed_ip!(ip) }
 
-    uri
+    # Prefer IPv4: hosts without IPv6 connectivity are still common.
+    [ uri, ips.min_by { |ip| ip.ipv4? ? 0 : 1 }.to_s ]
+  rescue URI::InvalidURIError
+    raise Error, "invalid URL"
   end
 
   class << self
@@ -68,14 +75,11 @@ class SsrfSafeUrlValidator
         BLOCKED_RANGES.any? { |range| range.family == ip.family && range.include?(ip) }
     end
 
-    def resolve_and_check_ips!(host)
+    def resolve_ips(host)
       addresses = Timeout.timeout(DNS_TIMEOUT_SEC) { Resolv.getaddresses(host) }
       raise Error, "host could not be resolved" if addresses.empty?
 
-      addresses.each do |addr|
-        ip = IPAddr.new(addr)
-        raise_disallowed_ip!(ip)
-      end
+      addresses.map { |addr| IPAddr.new(addr) }
     rescue Timeout::Error
       raise Error, "DNS resolution timed out"
     rescue IPAddr::InvalidAddressError
