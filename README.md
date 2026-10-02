@@ -31,7 +31,6 @@ A small Rails app that helps you post to multiple social networks at once. It st
 
 - Ruby 3.3, Rails 8.1
 - PostgreSQL (app plus separate DBs for Solid Cache, Solid Queue, Solid Cable in the default Docker setup)
-- Redis (started by the example Docker Compose file; the app does not use it yet)
 - Solid Queue for background jobs (database-backed in the default configuration)
 - Tailwind CSS, esbuild, Hotwire (Turbo, Stimulus)
 - Faraday for HTTP calls
@@ -39,9 +38,9 @@ A small Rails app that helps you post to multiple social networks at once. It st
 
 ## Run with Docker Compose
 
-The repo ships an example compose file: [`docker-compose.prod.yml.example`](docker-compose.prod.yml.example). Copy it to `docker-compose.yml` (which is gitignored) and adjust it. It runs Rails in **production** mode with a source bind mount (good for local iteration), bundled **web** and **worker** services, Postgres, and Redis.
+The repo ships an example compose file: [`docker-compose.prod.yml.example`](docker-compose.prod.yml.example). Copy it to `docker-compose.yml` (which is gitignored) and adjust it. It builds a production image from [`server/Dockerfile`](server/Dockerfile) (gems and assets are baked in at build time, the app runs as an unprivileged user) and runs a **web** and a **worker** container from it, plus Postgres.
 
-**Requirements:** Docker and Docker Compose.
+**Requirements:** Docker and Docker Compose, and a TLS-terminating reverse proxy (Caddy, nginx, Traefik, ...) in front of the app: production forces HTTPS.
 
 ### 1. Clone and configure
 
@@ -49,10 +48,13 @@ The repo ships an example compose file: [`docker-compose.prod.yml.example`](dock
 git clone https://github.com/gummipunkt/crossy.git
 cd crossy
 cp docker-compose.prod.yml.example docker-compose.yml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
 cp env/.env.production.example env/.env.production
 # Fill in env/.env.production: SECRET_KEY_BASE, LOCKBOX_MASTER_KEY, BLIND_INDEX_MASTER_KEY,
 # PUBLIC_BASE_URL, SMTP, Threads keys, etc.
 ```
+
+`.env` (next to `docker-compose.yml`, gitignored) only holds `POSTGRES_PASSWORD`; compose uses it for the database and builds the `DATABASE_URL`s from it. Leave `DATABASE_URL` out of `env/.env.production`.
 
 Generate the secrets instead of reusing example values:
 
@@ -64,38 +66,43 @@ openssl rand -hex 32   # BLIND_INDEX_MASTER_KEY
 
 Back up `LOCKBOX_MASTER_KEY`: without it the stored access tokens cannot be decrypted.
 
-The example compose file uses `crossy:crossy` as database credentials, both for the `db` service and in the `DATABASE_URL`/`*_DATABASE_URL` entries of `web` and `worker`. Change them in all places if the database is reachable from outside.
-
 ### 2. Start the stack
 
 ```bash
 docker compose up -d --build
 ```
 
-The **web** container runs `db:prepare`, builds JS/CSS, precompiles assets, then starts Puma on port **3000** inside the container.
+The **web** container runs `db:prepare` (creates/migrates all databases) and starts Puma behind Thruster. The **worker** starts once web is healthy and runs Solid Queue, including the recurring jobs (scheduled posts every minute, daily Threads token refresh).
+
+After pulling a new version, run `docker compose up -d --build` again; migrations run automatically.
 
 ### 3. Open the app
 
-- **From your machine:** [http://localhost:3022](http://localhost:3022) (host port **3022** is mapped to container port 3000)
-- Health check: `GET /up`
+The app listens on **127.0.0.1:3022** only (change with `CROSSY_PORT` in `.env`). Point your reverse proxy at it; the health check is `GET /up`.
+
 - Root / composer: `/`
 - Timeline: `/timeline`
 - Your posts: `/my`
 - Provider accounts: `/provider_accounts`
 
-### First-time / manual asset build (if needed)
-
-If assets are missing:
+### Running commands
 
 ```bash
-docker compose exec -w /app/server web bash -lc "bin/rails javascript:build && bin/rails css:build && bin/rails assets:precompile"
+docker compose exec web bin/rails console
+docker compose exec web bin/rails db:migrate
 ```
 
-### Database migrations (if you run commands yourself)
+### Upgrading from the old compose file (source bind mount, Redis)
 
-```bash
-docker compose exec -w /app/server web bash -lc "bin/rails db:migrate"
-```
+Earlier versions ran the app as root from a bind-mounted checkout. To switch:
+
+1. Replace your `docker-compose.yml` with the new example. The volume names `db-data` and `storage` are unchanged, so data is kept. The old `redis-data` and `bundle-data` volumes are no longer used (`docker volume rm` them if you like).
+2. The existing database was initialised with the password `crossy`. Either put `POSTGRES_PASSWORD=crossy` into `.env`, or change it first:
+   `docker compose exec db psql -U crossy -d server_production -c "ALTER USER crossy PASSWORD 'new-secret'"` and use that value.
+3. Remove `DATABASE_URL` from `env/.env.production` if you set it there.
+4. Uploaded files were written as root; give them to the app user once:
+   `docker compose run --rm --user root web chown -R 1000:1000 /rails/storage`
+5. Update your reverse proxy to `127.0.0.1:3022` (unchanged port, now bound to localhost only).
 
 ## Configuration
 
@@ -109,7 +116,7 @@ Environment variables are loaded from **`env/.env.production`** (see [`env/.env.
 
 **SMTP (password reset):** `MAILER_SENDER`, `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_DOMAIN`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS`, optional `SMTP_OPENSSL_VERIFY_MODE`.
 
-**Database:** `DATABASE_URL` required in production; optional `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, `CABLE_DATABASE_URL` (Compose sets separate DB URLs by default). Tuning: `DB_POOL`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, etc.
+**Database:** `DATABASE_URL` required in production; optional `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL`, `CABLE_DATABASE_URL` (the compose file sets all four from `POSTGRES_PASSWORD`). Tuning: `DB_POOL`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, etc.
 
 **Bluesky:** optional `BLUESKY_BASE` (default `https://bsky.social`). Connect via **Provider accounts** in the UI (handle + app password).
 
@@ -145,11 +152,11 @@ GitHub Actions (`.github/workflows/ci.yml`) runs Brakeman, bundler-audit, RuboCo
 
 ## Troubleshooting
 
-- **Assets / esbuild** — Run the asset build commands above inside the `web` container; hard-reload the browser.
+- **Assets missing / outdated** — Assets are built into the image; rebuild with `docker compose up -d --build` and hard-reload the browser.
+- **Uploads fail with "Permission denied"** — Files in the `storage` volume must belong to uid 1000; see the upgrade steps above.
 - **Images blocked** — CSP is configured in Secure Headers; remote timeline images use broad `img_src` for provider CDNs.
 - **Threads token (e.g. 190)** — Reconnect via `/auth/threads`.
 - **Mastodon uploads** — Check token scopes and that the instance URL uses `https://`.
-- **Gems reinstalling every boot** — Normal if the container is recreated without a persistent bundle volume; Compose uses a `bundle-data` volume to cache gems between restarts.
 
 ## Security notes
 
