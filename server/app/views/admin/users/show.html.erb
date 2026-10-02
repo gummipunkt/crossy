@@ -9,7 +9,7 @@
   <% end %>
   <% if @user != current_user %>
     <span class="mx-2 text-gray-300 hidden sm:inline">|</span>
-    <%= button_to "Delete user", admin_user_path(@user), method: :delete, data: { confirm: "Delete this user?" }, class: "text-sm text-red-700 hover:underline inline" %>
+    <%= button_to "Delete user", admin_user_path(@user), method: :delete, form: { data: { turbo_confirm: "Delete this user?" } }, class: "text-sm text-red-700 hover:underline inline" %>
   <% end %>
 </div>
 

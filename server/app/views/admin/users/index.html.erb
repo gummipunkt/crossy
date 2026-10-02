@@ -22,7 +22,7 @@
             <%= button_to "Make admin", make_admin_admin_user_path(u), method: :post, class: "text-xs font-medium text-violet-700 hover:text-violet-900 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
           <% end %>
           <% if u != current_user %>
-            <%= button_to "Delete", admin_user_path(u), method: :delete, data: { confirm: "Delete this user?" }, class: "text-xs font-medium text-red-700 hover:text-red-900 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+            <%= button_to "Delete", admin_user_path(u), method: :delete, form: { data: { turbo_confirm: "Delete this user?" } }, class: "text-xs font-medium text-red-700 hover:text-red-900 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
           <% end %>
         </div>
       </div>

@@ -25,7 +25,7 @@ class ThreadsAuthController < ApplicationController
   end
 
   def callback
-    if params[:state] != session.delete(:threads_oauth_state)
+    unless valid_oauth_state?(params[:state], session.delete(:threads_oauth_state))
       return redirect_to new_post_path, alert: "Invalid OAuth State"
     end
 
@@ -111,6 +111,13 @@ class ThreadsAuthController < ApplicationController
   end
 
   private
+
+  # Both sides must be present: a missing session state must never match a
+  # missing parameter, or anyone could complete the flow for a signed-in user.
+  def valid_oauth_state?(received, expected)
+    received.is_a?(String) && expected.is_a?(String) && received.present? && expected.present? &&
+      ActiveSupport::SecurityUtils.secure_compare(received, expected)
+  end
 
   def callback_url
     # Prefer current request host to preserve session cookies; fallback to PUBLIC_BASE_URL

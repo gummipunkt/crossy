@@ -12,7 +12,7 @@
         <div class="text-xs text-stone-500 mt-2 break-all font-mono leading-relaxed"><%= info %></div>
       <% end %>
       <div class="mt-4">
-        <%= button_to "Remove", provider_account_path(pa), method: :delete, data: { confirm: "Remove this network?" }, class: "rounded-lg bg-red-600 text-white text-sm font-medium px-3 py-2 hover:bg-red-700 transition-colors" %>
+        <%= button_to "Remove", provider_account_path(pa), method: :delete, form: { data: { turbo_confirm: "Remove this network?" } }, class: "rounded-lg bg-red-600 text-white text-sm font-medium px-3 py-2 hover:bg-red-700 transition-colors" %>
       </div>
     </div>
   <% end %>
