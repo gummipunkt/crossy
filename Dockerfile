@@ -1,4 +1,4 @@
-FROM ruby:3.3.4-slim
+FROM ruby:4.0.0-slim
 
 # Install OS packages
 RUN apt-get update -y \
