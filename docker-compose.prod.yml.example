@@ -118,6 +118,8 @@ services:
     volumes:
       - ./:/app
       - bundle-data:/usr/local/bundle
+      # Same Active Storage volume as web: the worker reads uploads when posting media.
+      - storage:/app/server/storage
     working_dir: /app/server
     env_file:
       - env/.env.production
