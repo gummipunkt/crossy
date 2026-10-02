@@ -40,27 +40,16 @@ module Posting
       end
 
       unless resp.success?
-        # Auto‑Refresh bei Error 190
-        if resp.status == 400 && resp.body.to_s.include?('"code":190')
-          refresh = Faraday.get("#{GRAPH_BASE}/refresh_access_token", {
-            grant_type: "th_refresh_token",
-            access_token: access_token
-          }, { "X-IG-App-ID" => app_id })
-          if refresh.success?
-            body = (JSON.parse(refresh.body) rescue {})
-            new_token = body["access_token"]
-            expires_in = body["expires_in"]
-            if new_token.present?
-              @provider_account.update!(access_token: new_token, threads_token_expires_at: (Time.now + expires_in.to_i rescue nil))
-              params[:access_token] = new_token
-              resp = conn.post("/v1.0/#{user_id}/threads") do |req|
-                req.headers["Accept"] = "application/json"
-                req.headers["X-IG-App-ID"] = app_id
-                req.options.timeout = 15
-                req.options.open_timeout = 5
-                req.body = params
-              end
-            end
+        # Error 190: token invalid/expired. Try one refresh, then retry once.
+        if resp.status == 400 && resp.body.to_s.include?('"code":190') &&
+           (new_token = Threads::TokenRefresher.new(@provider_account).refresh!)
+          params[:access_token] = new_token
+          resp = conn.post("/v1.0/#{user_id}/threads") do |req|
+            req.headers["Accept"] = "application/json"
+            req.headers["X-IG-App-ID"] = app_id
+            req.options.timeout = 15
+            req.options.open_timeout = 5
+            req.body = params
           end
         end
         raise "Threads error: #{resp.status} #{resp.body}" unless resp.success?
@@ -134,41 +123,25 @@ module Posting
       sleep(seconds)
     end
 
+    # Refresh the long-lived token when it expires within 3 days.
     def ensure_fresh_token
-      token = @provider_account.access_token.to_s
       exp = @provider_account.threads_token_expires_at
-      # Refresh 1 day before expiry if known
-      # Refresh 3 Tage vor Ablauf (Long-lived sollten ~60 Tage halten)
-      if exp && Time.now > (exp - 3.days)
-        app_id = ENV.fetch("THREADS_APP_ID")
-        refresh = Faraday.get(
-          "#{GRAPH_BASE}/refresh_access_token",
-          {
-            grant_type: "th_refresh_token",
-            access_token: token
-          },
-          {
-            "X-IG-App-ID" => app_id
-          }
-        )
-        if refresh.success?
-          body = (JSON.parse(refresh.body) rescue {})
-          new_token = body["access_token"]
-          expires_in = body["expires_in"]
-          if new_token.present?
-            @provider_account.update!(access_token: new_token, threads_token_expires_at: ((Time.now + expires_in.to_i).utc rescue nil))
-            return new_token
-          end
+      if exp && Time.current > (exp - 3.days)
+        begin
+          Threads::TokenRefresher.new(@provider_account).refresh!
+        rescue => e
+          Rails.logger.warn("Threads token refresh before posting failed: #{e.message}")
         end
       end
-      token
+      @provider_account.access_token.to_s
     end
 
     def first_public_image_url(post)
       ma = Array(post.media_attachments).find { |m| m.file.attached? && m.content_type.to_s.start_with?("image/") }
       return nil unless ma
       base = ENV["PUBLIC_BASE_URL"].to_s.presence
-      return nil if base.blank?
+      # Threads fetches the image itself, so it needs a public URL.
+      raise "PUBLIC_BASE_URL must be set to post images to Threads" if base.blank?
       helpers = Rails.application.routes.url_helpers
       path = helpers.rails_blob_path(ma.file, only_path: true)
       URI.join(base, path).to_s
