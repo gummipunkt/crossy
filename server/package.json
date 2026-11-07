@@ -8,7 +8,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
     "esbuild": "^0.28.2",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.4"
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
